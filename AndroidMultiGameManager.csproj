@@ -12,6 +12,11 @@
     <FileVersion>1.6.0.0</FileVersion>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Remove="MaintenanceSmokeTest\**\*.cs" />
+    <EmbeddedResource Remove="MaintenanceSmokeTest\**\*" />
+    <None Remove="MaintenanceSmokeTest\**\*" />
+  </ItemGroup>
+  <ItemGroup>
     <None Update="update-config.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
