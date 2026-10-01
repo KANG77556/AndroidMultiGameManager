@@ -1,0 +1,12 @@
+bin/
+obj/
+publish*/
+installer-output*/
+release-*/
+MaintenanceSmokeTest/bin/
+MaintenanceSmokeTest/obj/
+*.log
+*.com-backup-*
+.vs/
+*.user
+*.suo
