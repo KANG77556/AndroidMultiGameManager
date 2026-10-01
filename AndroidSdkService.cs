@@ -68,6 +68,23 @@ public sealed class AndroidSdkService
             throw new InvalidOperationException($"Google 계정 설정 열기 실패: {serial}\n{r.Err}\n{r.Out}");
     }
 
+    public async Task<bool> HasGoogleAccountAsync(string serial)
+    {
+        EnsureReady();
+        var r=await RunAsync(
+            AdbPath!,
+            $"-s {Q(serial)} shell dumpsys account",
+            10000,
+            false);
+
+        if(r.Code!=0) return false;
+
+        return Regex.IsMatch(
+            r.Out,
+            @"Account\s*\{[^}]*type=com\.google",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+    }
+
     public async Task<bool> IsPackageInstalledAsync(string serial,string packageName)
     {
         EnsureReady();

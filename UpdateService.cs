@@ -15,7 +15,7 @@ public sealed record UpdateResult(
 
 public static class UpdateService
 {
-    public const string CurrentVersion = "1.7.0";
+    public const string CurrentVersion = "1.8.0";
 
     public static async Task<UpdateResult> CheckAndDownloadAsync(string manifestUrl)
     {

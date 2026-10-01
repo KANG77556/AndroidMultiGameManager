@@ -2,23 +2,21 @@
 
 Windows GUI manager for running and controlling multiple Android emulator game instances.
 
-## v1.7.0
+## v1.8.0
 
-- Multiple AVD launch/stop and embedded scrcpy views
+- Multiple AVD launch/stop with embedded scrcpy views
 - Per-instance Google Play account alias management
-- Open Google account settings separately for each AVD
-- Search the same game in Google Play across selected AVDs
-- Detect installation completion and auto-run the same game
-- Each AVD keeps independent Google Play login and game data
-- Synchronized tap, swipe and key input
+- Google login-state check per selected AVD
+- Open account setup only for AVDs that are not logged in
+- Search the same game in Google Play on all logged-in AVDs
+- Detect installation completion and optionally auto-play
+- Independent Google Play login and game data per AVD
 - Instance groups and group auto-start scenarios
-- Startup retry and periodic health checks
+- Startup retry and ADB/Android health checks
+- Synchronized tap, swipe and key input
 - Per-instance FPS and max-resolution controls
 - APK installation and installed-app discovery
 - Game profiles and one-click launch
-- AVD cloning
-- CPU/RAM launch limits
-- Settings backup/restore
-- Windows startup option
-- Daily log files
+- AVD cloning and CPU/RAM launch limits
+- Backup/restore, startup option, logs
 - SHA-256 verified online updater

@@ -290,6 +290,68 @@ public partial class MainWindow : Window
         return selected.Where(x=>x.Status=="실행 중"&&x.DeviceSerial.StartsWith("emulator-")).ToList();
     }
 
+    private async Task<List<AvdItem>> UpdateGoogleAccountStatusesAsync(List<AvdItem> targets)
+    {
+        if(targets.Count==0)return new();
+
+        var results=await Task.WhenAll(targets.Select(async item=>
+        {
+            try
+            {
+                var ready=await _sdk.HasGoogleAccountAsync(item.DeviceSerial);
+                return (Item:item,Ready:ready);
+            }
+            catch
+            {
+                return (Item:item,Ready:false);
+            }
+        }));
+
+        foreach(var result in results)
+            result.Item.GoogleAccountStatus=result.Ready?"로그인됨":"미로그인";
+
+        var readyItems=results.Where(x=>x.Ready).Select(x=>x.Item).ToList();
+        PlayStoreStatusText.Text=$"Google 계정 로그인: {readyItems.Count}/{targets.Count}";
+        return readyItems;
+    }
+
+    private async void CheckGoogleAccountsButton_Click(object s,RoutedEventArgs e)
+    {
+        var targets=await EnsureSelectedRunningAsync();
+        if(targets.Count==0)return;
+
+        var ready=await UpdateGoogleAccountStatusesAsync(targets);
+        Log($"Google 계정 상태 점검: 로그인 {ready.Count}/{targets.Count}");
+    }
+
+    private async void OpenMissingGoogleAccountsButton_Click(object s,RoutedEventArgs e)
+    {
+        var targets=await EnsureSelectedRunningAsync();
+        if(targets.Count==0)return;
+
+        var ready=await UpdateGoogleAccountStatusesAsync(targets);
+        var readyNames=ready.Select(x=>x.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var missing=targets.Where(x=>!readyNames.Contains(x.Name)).ToList();
+
+        if(missing.Count==0)
+        {
+            PlayStoreStatusText.Text="선택된 모든 인스턴스에 Google 계정이 로그인되어 있습니다.";
+            return;
+        }
+
+        foreach(var item in missing)
+        {
+            try
+            {
+                await _sdk.OpenGoogleAccountSettingsAsync(item.DeviceSerial);
+                Log($"미로그인 Google 계정 설정 열기: {item.Name} ({item.AccountAlias})");
+            }
+            catch(Exception ex){Log(ex.Message);}
+        }
+
+        PlayStoreStatusText.Text=$"미로그인 {missing.Count}개 인스턴스의 계정 추가 화면을 열었습니다.";
+    }
+
     private void SaveAccountAliasButton_Click(object s,RoutedEventArgs e)
     {
         var selected=_items.Where(x=>x.IsSelected).ToList();
@@ -338,8 +400,15 @@ public partial class MainWindow : Window
             return;
         }
 
+        var ready=await UpdateGoogleAccountStatusesAsync(targets);
+        if(ready.Count==0)
+        {
+            PlayStoreStatusText.Text="Google 계정 로그인이 완료된 인스턴스가 없습니다.";
+            return;
+        }
+
         _playStoreSnapshots.Clear();
-        foreach(var item in targets)
+        foreach(var item in ready)
         {
             try
             {
@@ -351,7 +420,10 @@ public partial class MainWindow : Window
             catch(Exception ex){Log(ex.Message);}
         }
 
-        PlayStoreStatusText.Text=$"{targets.Count}개 인스턴스에서 '{query}' 검색 화면을 열었습니다. 각 계정에서 설치를 누르세요.";
+        var missing=targets.Count-ready.Count;
+        PlayStoreStatusText.Text=missing==0
+            ? $"{ready.Count}개 인스턴스에서 '{query}' 검색 화면을 열었습니다. 각 계정에서 설치를 누르세요."
+            : $"로그인된 {ready.Count}개에서 검색 완료. 미로그인 {missing}개는 로그인 후 다시 검색하세요.";
     }
 
     private async void OpenPlayStoreDetailsButton_Click(object s,RoutedEventArgs e)
