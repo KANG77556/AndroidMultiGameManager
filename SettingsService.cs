@@ -10,6 +10,7 @@ public sealed class AppSettings
     public int MemoryMb { get; set; } = 4096;
     public bool SyncClick { get; set; }
     public bool RunAtStartup { get; set; }
+    public int StartRetryCount { get; set; } = 2;
 }
 public static class SettingsService
 {

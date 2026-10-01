@@ -16,6 +16,10 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer _clockTimer=new(){Interval=TimeSpan.FromSeconds(1)};
     private AppSettings _settings=new();
     private List<GameProfile> _profiles=new();
+    private List<InstanceGroup> _groups=new();
+    private readonly Dictionary<string,string> _accountAliases=InstanceAccountService.Load();
+    private readonly Dictionary<string,HashSet<string>> _playStoreSnapshots=new(StringComparer.OrdinalIgnoreCase);
+    private CancellationTokenSource? _playStoreWatchCts;
     private bool _busy,_syncBroadcasting;
 
     public MainWindow()
@@ -23,21 +27,23 @@ public partial class MainWindow : Window
         InitializeComponent();
         _settings=SettingsService.Load();
         _profiles=GameProfileService.Load();
+        _groups=InstanceGroupService.Load();
         PackageTextBox.Text=string.IsNullOrWhiteSpace(_settings.PackageName)?"com.example.game":_settings.PackageName;
         CpuCoresTextBox.Text=_settings.CpuCores.ToString();
         MemoryMbTextBox.Text=_settings.MemoryMb.ToString();
+        RetryCountTextBox.Text=_settings.StartRetryCount.ToString();
         SyncClickCheckBox.IsChecked=_settings.SyncClick;
         RunAtStartupCheckBox.IsChecked=AppMaintenanceService.IsRunAtStartupEnabled();
         CompactInstanceList.ItemsSource=_items; CardItems.ItemsSource=_items;
-        ReloadProfiles(); ApplySavedLayoutSelection();
+        ReloadGroups(); ReloadProfiles(); ApplySavedLayoutSelection();
         Loaded+=async(_,_)=>await InitializeAsync();
-        Closed+=(_,_)=>{_refreshTimer.Stop();_clockTimer.Stop();SaveSettings();};
-        _refreshTimer.Tick+=async(_,_)=>{if(!_busy){await RefreshRunningStatesAsync();UpdateMetrics();}};
+        Closed+=(_,_)=>{_playStoreWatchCts?.Cancel();_refreshTimer.Stop();_clockTimer.Stop();SaveSettings();};
+        _refreshTimer.Tick+=async(_,_)=>{if(!_busy){await RefreshRunningStatesAsync();await CheckHealthAsync();UpdateMetrics();}};
         _clockTimer.Tick+=(_,_)=>ClockText.Text=DateTime.Now.ToString("yyyy.MM.dd  HH:mm:ss");
     }
 
     private async Task InitializeAsync(){ClockText.Text=DateTime.Now.ToString("yyyy.MM.dd  HH:mm:ss");_clockTimer.Start();SdkPathText.Text=$"SDK: {_sdk.SdkRoot??"찾을 수 없음"}";if(!_sdk.IsReady(out var m)){Log(m);MessageBox.Show(m);return;}Log(m);await RefreshAsync();UpdateMetrics();_refreshTimer.Start();}
-    private async Task RefreshAsync(){try{ToggleBusy(true);var avds=await _sdk.GetAvdsAsync();var running=await _sdk.GetRunningAvdsAsync();var selected=_items.Where(x=>x.IsSelected).Select(x=>x.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);_items.Clear();foreach(var avd in avds){var i=new AvdItem{Name=avd,IsSelected=selected.Contains(avd)||_settings.SelectedAvds.Contains(avd,StringComparer.OrdinalIgnoreCase),MaxFps=GetProfileFps(),MaxSize=GetProfileSize()};if(running.TryGetValue(avd,out var s)){i.Status="실행 중";i.DeviceSerial=s;}_items.Add(i);}UpdateAdbSummary(running);ApplyLayout();}catch(Exception ex){Log("새로고침 실패: "+ex.Message);}finally{ToggleBusy(false);}}
+    private async Task RefreshAsync(){try{ToggleBusy(true);var avds=await _sdk.GetAvdsAsync();var running=await _sdk.GetRunningAvdsAsync();var selected=_items.Where(x=>x.IsSelected).Select(x=>x.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);_items.Clear();foreach(var avd in avds){var i=new AvdItem{Name=avd,IsSelected=selected.Contains(avd)||_settings.SelectedAvds.Contains(avd,StringComparer.OrdinalIgnoreCase),MaxFps=GetProfileFps(),MaxSize=GetProfileSize(),AccountAlias=_accountAliases.TryGetValue(avd,out var alias)?alias:"미지정"};if(running.TryGetValue(avd,out var s)){i.Status="실행 중";i.DeviceSerial=s;}_items.Add(i);}UpdateAdbSummary(running);ApplyLayout();}catch(Exception ex){Log("새로고침 실패: "+ex.Message);}finally{ToggleBusy(false);}}
     private async Task RefreshRunningStatesAsync(){try{var r=await _sdk.GetRunningAvdsAsync();foreach(var i in _items){if(r.TryGetValue(i.Name,out var s)){i.Status="실행 중";i.DeviceSerial=s;}else if(i.Status!="시작 중"){i.Status="중지됨";i.DeviceSerial="-";}}UpdateAdbSummary(r);}catch(Exception ex){Log("상태 확인 실패: "+ex.Message);}}
     private void UpdateAdbSummary(Dictionary<string,string> r)=>AdbSummaryText.Text=r.Count==0?"연결된 에뮬레이터 없음":string.Join(Environment.NewLine,r.OrderBy(x=>x.Value).Select(x=>$"● {x.Value}"));
 
@@ -47,7 +53,76 @@ public partial class MainWindow : Window
     private async Task StartItemsAsync(List<AvdItem> targets)
     {
         if(targets.Count==0){MessageBox.Show("실행할 인스턴스를 선택하세요.");return;}
-        try{ToggleBusy(true);var running=await _sdk.GetRunningAvdsAsync();var used=running.Values.Where(x=>x.StartsWith("emulator-")).Select(x=>int.TryParse(x[9..],out var p)?p:-1).Where(x=>x>0).ToHashSet();foreach(var i in targets){if(running.TryGetValue(i.Name,out var es)){i.Status="실행 중";i.DeviceSerial=es;continue;}var port=FindPort(used);used.Add(port);i.Status="시작 중";i.DeviceSerial=$"emulator-{port}";_sdk.StartAvd(i.Name,port,GetCpu(),GetMemory());Log($"시작: {i.Name} → {i.DeviceSerial}");}await Task.WhenAll(targets.Where(x=>x.Status=="시작 중").Select(async i=>{try{await _sdk.WaitForDeviceAsync(i.DeviceSerial,TimeSpan.FromSeconds(120));await Dispatcher.InvokeAsync(()=>i.Status="실행 중");}catch(Exception ex){await Dispatcher.InvokeAsync(()=>i.Status="오류");Log(ex.Message);}}));await RefreshRunningStatesAsync();}finally{ToggleBusy(false);}
+        try
+        {
+            ToggleBusy(true);
+            var running=await _sdk.GetRunningAvdsAsync();
+            var used=running.Values.Where(x=>x.StartsWith("emulator-"))
+                .Select(x=>int.TryParse(x[9..],out var p)?p:-1).Where(x=>x>0).ToHashSet();
+
+            foreach(var item in targets)
+            {
+                if(running.TryGetValue(item.Name,out var existingSerial))
+                {
+                    item.Status="실행 중";
+                    item.DeviceSerial=existingSerial;
+                    continue;
+                }
+
+                var port=FindPort(used);
+                used.Add(port);
+                item.Status="시작 중";
+                item.DeviceSerial=$"emulator-{port}";
+                _sdk.StartAvd(item.Name,port,GetCpu(),GetMemory());
+                Log($"시작: {item.Name} → {item.DeviceSerial}");
+            }
+
+            var retryCount=GetRetryCount();
+            await Task.WhenAll(targets.Where(x=>x.Status=="시작 중").Select(async item=>
+            {
+                Exception? lastError=null;
+                for(var attempt=0;attempt<=retryCount;attempt++)
+                {
+                    try
+                    {
+                        if(attempt>0)
+                        {
+                            Log($"재시도 {attempt}/{retryCount}: {item.Name}");
+                            await Task.Delay(2000);
+                        }
+
+                        await _sdk.WaitForDeviceAsync(item.DeviceSerial,TimeSpan.FromSeconds(45));
+                        var healthy=await _sdk.IsDeviceHealthyAsync(item.DeviceSerial);
+                        if(!healthy) throw new InvalidOperationException("Android 부팅 완료 상태가 아닙니다.");
+
+                        await Dispatcher.InvokeAsync(()=>
+                        {
+                            item.Status="실행 중";
+                            item.Health="정상";
+                        });
+                        return;
+                    }
+                    catch(Exception ex)
+                    {
+                        lastError=ex;
+                    }
+                }
+
+                await Dispatcher.InvokeAsync(()=>
+                {
+                    item.Status="오류";
+                    item.Health="실패";
+                });
+                Log($"시작 실패: {item.Name} - {lastError?.Message}");
+            }));
+
+            await RefreshRunningStatesAsync();
+            await CheckHealthAsync();
+        }
+        finally
+        {
+            ToggleBusy(false);
+        }
     }
     private async void LaunchGameButton_Click(object s,RoutedEventArgs e)=>await LaunchGameAsync(PackageTextBox.Text.Trim());
     private async Task LaunchGameAsync(string package){var t=SelectedRunning();if(t.Count==0){MessageBox.Show("실행 중인 선택 인스턴스가 없습니다.");return;}if(string.IsNullOrWhiteSpace(package)){MessageBox.Show("패키지명을 입력하세요.");return;}await Task.WhenAll(t.Select(async i=>{try{await _sdk.LaunchPackageAsync(i.DeviceSerial,package);Log($"게임 실행: {package} → {i.Name}");}catch(Exception ex){Log(ex.Message);}}));}
@@ -114,11 +189,286 @@ public partial class MainWindow : Window
     private async void RunProfileButton_Click(object s,RoutedEventArgs e){var selected=_items.Where(x=>x.IsSelected).ToList();if(selected.Count==0){MessageBox.Show("실행할 AVD를 선택하세요.");return;}foreach(var i in selected){i.MaxFps=GetProfileFps();i.MaxSize=GetProfileSize();}await StartItemsAsync(selected);await Task.Delay(GetAutoLaunchDelay());var package=PackageTextBox.Text.Trim();if(!string.IsNullOrWhiteSpace(package))await LaunchGameAsync(package);}
     private void ReloadProfiles(string? select=null){ProfileComboBox.ItemsSource=null;ProfileComboBox.ItemsSource=_profiles;ProfileComboBox.DisplayMemberPath=nameof(GameProfile.Name);var p=select is null?_profiles.FirstOrDefault():_profiles.FirstOrDefault(x=>x.Name.Equals(select,StringComparison.OrdinalIgnoreCase));if(p is not null)ProfileComboBox.SelectedItem=p;}
 
+    private void ReloadGroups(string? select=null)
+    {
+        GroupComboBox.ItemsSource=null;
+        GroupComboBox.ItemsSource=_groups;
+        GroupComboBox.DisplayMemberPath=nameof(InstanceGroup.Name);
+        var group=select is null?_groups.FirstOrDefault():_groups.FirstOrDefault(x=>x.Name.Equals(select,StringComparison.OrdinalIgnoreCase));
+        if(group is not null)GroupComboBox.SelectedItem=group;
+    }
+
+    private void SaveGroupButton_Click(object s,RoutedEventArgs e)
+    {
+        var name=GroupNameTextBox.Text.Trim();
+        var selected=_items.Where(x=>x.IsSelected).Select(x=>x.Name).ToList();
+        if(string.IsNullOrWhiteSpace(name)){MessageBox.Show("그룹 이름을 입력하세요.");return;}
+        if(selected.Count==0){MessageBox.Show("그룹에 포함할 인스턴스를 선택하세요.");return;}
+
+        var group=_groups.FirstOrDefault(x=>x.Name.Equals(name,StringComparison.OrdinalIgnoreCase));
+        if(group is null){group=new InstanceGroup{Name=name};_groups.Add(group);}
+        group.AvdNames=selected;
+        InstanceGroupService.Save(_groups);
+        ReloadGroups(name);
+        Log($"인스턴스 그룹 저장: {name} / {selected.Count}개");
+    }
+
+    private void GroupComboBox_SelectionChanged(object s,SelectionChangedEventArgs e)
+    {
+        if(GroupComboBox.SelectedItem is not InstanceGroup group)return;
+        GroupNameTextBox.Text=group.Name;
+        var names=group.AvdNames.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        foreach(var item in _items)item.IsSelected=names.Contains(item.Name);
+        Log($"그룹 선택: {group.Name} / {group.AvdNames.Count}개");
+    }
+
+    private async void RunGroupScenarioButton_Click(object s,RoutedEventArgs e)
+    {
+        if(GroupComboBox.SelectedItem is not InstanceGroup group)
+        {
+            MessageBox.Show("실행할 인스턴스 그룹을 선택하세요.");
+            return;
+        }
+
+        var names=group.AvdNames.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var targets=_items.Where(x=>names.Contains(x.Name)).ToList();
+        if(targets.Count==0){MessageBox.Show("그룹에 실행 가능한 AVD가 없습니다.");return;}
+
+        foreach(var item in _items)item.IsSelected=names.Contains(item.Name);
+        foreach(var item in targets){item.MaxFps=GetProfileFps();item.MaxSize=GetProfileSize();}
+
+        Log($"그룹 자동 시작: {group.Name}");
+        await StartItemsAsync(targets);
+
+        var healthy=targets.Where(x=>x.Status=="실행 중"&&x.Health=="정상").ToList();
+        if(healthy.Count==0)
+        {
+            Log("그룹 자동 시작 중단: 정상 부팅된 인스턴스가 없습니다.");
+            return;
+        }
+
+        await Task.Delay(GetAutoLaunchDelay());
+        var package=PackageTextBox.Text.Trim();
+        if(!string.IsNullOrWhiteSpace(package)&&package!="com.example.game")
+            await LaunchGameAsync(package);
+    }
+
+    private async Task CheckHealthAsync()
+    {
+        var running=_items.Where(x=>x.Status=="실행 중"&&x.DeviceSerial.StartsWith("emulator-")).ToList();
+        if(running.Count==0)
+        {
+            HealthSummaryText.Text="실행 인스턴스 없음";
+            return;
+        }
+
+        var checks=await Task.WhenAll(running.Select(async item=>
+        {
+            try{return (Item:item,Healthy:await _sdk.IsDeviceHealthyAsync(item.DeviceSerial));}
+            catch{return (Item:item,Healthy:false);}
+        }));
+
+        foreach(var check in checks)check.Item.Health=check.Healthy?"정상":"주의";
+        var ok=checks.Count(x=>x.Healthy);
+        HealthSummaryText.Text=$"정상 {ok}/{checks.Length}";
+    }
+
+    private int GetRetryCount()=>int.TryParse(RetryCountTextBox.Text,out var value)?Math.Clamp(value,0,5):2;
+
+    private async Task<List<AvdItem>> EnsureSelectedRunningAsync()
+    {
+        var selected=_items.Where(x=>x.IsSelected).ToList();
+        if(selected.Count==0)
+        {
+            MessageBox.Show("대상 인스턴스를 하나 이상 선택하세요.");
+            return new();
+        }
+
+        if(selected.Any(x=>x.Status!="실행 중"))
+            await StartItemsAsync(selected);
+
+        return selected.Where(x=>x.Status=="실행 중"&&x.DeviceSerial.StartsWith("emulator-")).ToList();
+    }
+
+    private void SaveAccountAliasButton_Click(object s,RoutedEventArgs e)
+    {
+        var selected=_items.Where(x=>x.IsSelected).ToList();
+        if(selected.Count!=1)
+        {
+            MessageBox.Show("계정 별칭을 저장할 인스턴스 하나만 선택하세요.");
+            return;
+        }
+
+        var alias=AccountAliasTextBox.Text.Trim();
+        if(string.IsNullOrWhiteSpace(alias)){MessageBox.Show("계정 별칭을 입력하세요.");return;}
+
+        _accountAliases[selected[0].Name]=alias;
+        selected[0].AccountAlias=alias;
+        InstanceAccountService.Save(_accountAliases);
+        Log($"계정 별칭 저장: {selected[0].Name} → {alias}");
+    }
+
+    private async void OpenGoogleAccountButton_Click(object s,RoutedEventArgs e)
+    {
+        var targets=await EnsureSelectedRunningAsync();
+        if(targets.Count==0)return;
+
+        foreach(var item in targets)
+        {
+            try
+            {
+                await _sdk.OpenGoogleAccountSettingsAsync(item.DeviceSerial);
+                Log($"Google 계정 설정 열기: {item.Name} ({item.AccountAlias})");
+            }
+            catch(Exception ex){Log(ex.Message);}
+        }
+
+        PlayStoreStatusText.Text="각 인스턴스 화면에서 서로 다른 Google 계정으로 로그인하세요.";
+    }
+
+    private async void SearchPlayStoreButton_Click(object s,RoutedEventArgs e)
+    {
+        var targets=await EnsureSelectedRunningAsync();
+        if(targets.Count==0)return;
+
+        var query=PlayStoreSearchTextBox.Text.Trim();
+        if(string.IsNullOrWhiteSpace(query)||query=="게임 이름")
+        {
+            MessageBox.Show("검색할 게임 이름을 입력하세요.");
+            return;
+        }
+
+        _playStoreSnapshots.Clear();
+        foreach(var item in targets)
+        {
+            try
+            {
+                var before=await _sdk.GetInstalledUserPackagesAsync(item.DeviceSerial);
+                _playStoreSnapshots[item.DeviceSerial]=before.ToHashSet(StringComparer.OrdinalIgnoreCase);
+                await _sdk.OpenPlayStoreSearchAsync(item.DeviceSerial,query);
+                Log($"Play 스토어 검색: {item.Name} / {item.AccountAlias} / {query}");
+            }
+            catch(Exception ex){Log(ex.Message);}
+        }
+
+        PlayStoreStatusText.Text=$"{targets.Count}개 인스턴스에서 '{query}' 검색 화면을 열었습니다. 각 계정에서 설치를 누르세요.";
+    }
+
+    private async void OpenPlayStoreDetailsButton_Click(object s,RoutedEventArgs e)
+    {
+        var package=PackageTextBox.Text.Trim();
+        if(!IsKnownPackage(package))
+        {
+            MessageBox.Show("먼저 실제 게임 패키지명을 입력하거나 설치 완료 감지로 패키지를 확인하세요.");
+            return;
+        }
+
+        var targets=await EnsureSelectedRunningAsync();
+        foreach(var item in targets)
+        {
+            try{await _sdk.OpenPlayStoreDetailsAsync(item.DeviceSerial,package);}
+            catch(Exception ex){Log(ex.Message);}
+        }
+
+        PlayStoreStatusText.Text=$"{package} Play 스토어 페이지를 선택 인스턴스에 열었습니다.";
+    }
+
+    private async void WatchPlayStoreInstallButton_Click(object s,RoutedEventArgs e)
+    {
+        var targets=await EnsureSelectedRunningAsync();
+        if(targets.Count==0)return;
+
+        _playStoreWatchCts?.Cancel();
+        _playStoreWatchCts=new CancellationTokenSource();
+        var token=_playStoreWatchCts.Token;
+
+        foreach(var item in targets)
+        {
+            if(!_playStoreSnapshots.ContainsKey(item.DeviceSerial))
+            {
+                var baseline=await _sdk.GetInstalledUserPackagesAsync(item.DeviceSerial);
+                _playStoreSnapshots[item.DeviceSerial]=baseline.ToHashSet(StringComparer.OrdinalIgnoreCase);
+            }
+        }
+
+        PlayStoreStatusText.Text="Play 스토어 설치 완료를 감지하는 중...";
+        Log("Play 스토어 설치 감지 시작");
+
+        try
+        {
+            var package=IsKnownPackage(PackageTextBox.Text.Trim())?PackageTextBox.Text.Trim():"";
+
+            for(var attempt=0;attempt<150&&!token.IsCancellationRequested;attempt++)
+            {
+                if(string.IsNullOrWhiteSpace(package))
+                {
+                    var first=targets[0];
+                    var current=await _sdk.GetInstalledUserPackagesAsync(first.DeviceSerial);
+                    var baseline=_playStoreSnapshots[first.DeviceSerial];
+                    package=current.FirstOrDefault(x=>!baseline.Contains(x))??"";
+                    if(!string.IsNullOrWhiteSpace(package))
+                    {
+                        PackageTextBox.Text=package;
+                        Log($"새 게임 패키지 감지: {package}");
+                    }
+                }
+
+                if(!string.IsNullOrWhiteSpace(package))
+                {
+                    var installed=await Task.WhenAll(targets.Select(x=>_sdk.IsPackageInstalledAsync(x.DeviceSerial,package)));
+                    var count=installed.Count(x=>x);
+                    PlayStoreStatusText.Text=$"설치 상태: {count}/{targets.Count} ({package})";
+
+                    if(count==targets.Count)
+                    {
+                        PlayStoreStatusText.Text=$"설치 완료: {package} / {targets.Count}개 인스턴스";
+                        Log($"동일 게임 설치 완료: {package} / {targets.Count}개");
+                        if(AutoPlayAfterInstallCheckBox.IsChecked==true)
+                            await LaunchGameAsync(package);
+                        return;
+                    }
+                }
+
+                await Task.Delay(2000,token);
+            }
+
+            if(!token.IsCancellationRequested)
+                PlayStoreStatusText.Text="설치 감지 제한시간(5분)을 초과했습니다.";
+        }
+        catch(OperationCanceledException)
+        {
+            PlayStoreStatusText.Text="설치 감지가 취소되었습니다.";
+        }
+        catch(Exception ex)
+        {
+            PlayStoreStatusText.Text="설치 감지 오류";
+            Log("Play 스토어 설치 감지 실패: "+ex.Message);
+        }
+    }
+
+    private async void PlayInstalledGameButton_Click(object s,RoutedEventArgs e)
+    {
+        var package=PackageTextBox.Text.Trim();
+        if(!IsKnownPackage(package))
+        {
+            MessageBox.Show("플레이할 게임 패키지명이 확인되지 않았습니다.");
+            return;
+        }
+
+        await LaunchGameAsync(package);
+    }
+
+    private static bool IsKnownPackage(string package)=>
+        !string.IsNullOrWhiteSpace(package)&&
+        package!="com.example.game"&&
+        package.Contains('.')&&
+        !package.Contains(' ');
+
     private void LayoutComboBox_SelectionChanged(object s,SelectionChangedEventArgs e){ApplyLayout();SaveSettings();}
     private void Window_SizeChanged(object s,SizeChangedEventArgs e){if(IsLoaded)ApplyLayout();}
     private void ApplyLayout(){if(CardItems is null||LayoutComboBox is null)return;var mode=(LayoutComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString()??"자동";var avail=Math.Max(600,ActualWidth-350);var col=mode switch{"2×2"=>2,"3×2"=>3,_=>avail>=1280?3:2};CardItems.Tag=Math.Clamp((avail-col*16)/col,300,560);}
     private void ApplySavedLayoutSelection(){var wanted=_settings.LayoutMode;foreach(var i in LayoutComboBox.Items.OfType<ComboBoxItem>())if((i.Content?.ToString()??"")==wanted){LayoutComboBox.SelectedItem=i;break;}}
-    private void SaveSettings(){try{SettingsService.Save(new AppSettings{PackageName=PackageTextBox.Text.Trim(),LayoutMode=(LayoutComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString()??"자동",SelectedAvds=_items.Where(x=>x.IsSelected).Select(x=>x.Name).ToList(),CpuCores=GetCpu(),MemoryMb=GetMemory(),SyncClick=SyncClickCheckBox.IsChecked==true,RunAtStartup=RunAtStartupCheckBox.IsChecked==true});}catch(Exception ex){AppMaintenanceService.AppendLog("설정 저장 실패: "+ex.Message);}}
+    private void SaveSettings(){try{SettingsService.Save(new AppSettings{PackageName=PackageTextBox.Text.Trim(),LayoutMode=(LayoutComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString()??"자동",SelectedAvds=_items.Where(x=>x.IsSelected).Select(x=>x.Name).ToList(),CpuCores=GetCpu(),MemoryMb=GetMemory(),SyncClick=SyncClickCheckBox.IsChecked==true,RunAtStartup=RunAtStartupCheckBox.IsChecked==true,StartRetryCount=GetRetryCount()});}catch(Exception ex){AppMaintenanceService.AppendLog("설정 저장 실패: "+ex.Message);}}
 
 
     private void RunAtStartupCheckBox_Changed(object s,RoutedEventArgs e)

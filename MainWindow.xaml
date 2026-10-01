@@ -17,7 +17,7 @@
                     <Grid Margin="10,0">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                         <CheckBox IsChecked="{Binding IsSelected}" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                        <StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock Text="{Binding Name}" FontWeight="Bold"/><TextBlock Text="{Binding DeviceSerial}" FontSize="10" Foreground="#8297AD"/></StackPanel>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock Text="{Binding Name}" FontWeight="Bold"/><StackPanel Orientation="Horizontal"><TextBlock Text="{Binding DeviceSerial}" FontSize="10" Foreground="#8297AD"/><TextBlock Text="  /  " FontSize="10" Foreground="#60758B"/><TextBlock Text="{Binding AccountAlias}" FontSize="10" Foreground="#F6C453"/></StackPanel></StackPanel>
                         <TextBlock Grid.Column="2" Text="{Binding Status}" Foreground="#21D07A" VerticalAlignment="Center"/>
                     </Grid>
                     <Border Grid.Row="1" Margin="6" Background="#02070D" CornerRadius="6" ClipToBounds="True">
@@ -39,7 +39,7 @@
         <Grid.RowDefinitions><RowDefinition Height="58"/><RowDefinition Height="*"/></Grid.RowDefinitions>
         <Border Background="#0B1A2B" BorderBrush="#18324E" BorderThickness="0,0,0,1">
             <Grid Margin="16,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center"><Border Width="34" Height="34" CornerRadius="8" Background="#7138D5"><TextBlock Text="G" FontSize="20" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><TextBlock Text="Android 게임 멀티 실행기" FontSize="20" FontWeight="Bold" Margin="12,0,0,0" VerticalAlignment="Center"/><TextBlock Text="v1.6.0" Foreground="#8EA2B8" Margin="8,0,0,0" VerticalAlignment="Center"/></StackPanel>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center"><Border Width="34" Height="34" CornerRadius="8" Background="#7138D5"><TextBlock Text="G" FontSize="20" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><TextBlock Text="Android 게임 멀티 실행기" FontSize="20" FontWeight="Bold" Margin="12,0,0,0" VerticalAlignment="Center"/><TextBlock Text="v1.7.0" Foreground="#8EA2B8" Margin="8,0,0,0" VerticalAlignment="Center"/></StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center"><TextBlock x:Name="ClockText" Foreground="#A8BAD0" VerticalAlignment="Center" Margin="0,0,10,0"/><Button Content="업데이트 확인" Style="{StaticResource B}" Click="CheckUpdateButton_Click"/></StackPanel>
             </Grid>
         </Border>
@@ -49,8 +49,32 @@
                 <StackPanel Margin="12">
                     <Border Background="{StaticResource Panel}" BorderBrush="{StaticResource Border}" BorderThickness="1" CornerRadius="9" Padding="12">
                         <StackPanel><Grid><TextBlock Text="인스턴스" FontWeight="Bold"/><Button x:Name="RefreshButton" Content="새로고침" HorizontalAlignment="Right" Style="{StaticResource B}" Click="RefreshButton_Click"/></Grid>
-                        <ItemsControl x:Name="CompactInstanceList" Margin="0,10,0,0"><ItemsControl.ItemTemplate><DataTemplate><Grid Margin="0,3"><Grid.ColumnDefinitions><ColumnDefinition Width="24"/><ColumnDefinition Width="*"/><ColumnDefinition Width="65"/></Grid.ColumnDefinitions><CheckBox IsChecked="{Binding IsSelected}"/><TextBlock Grid.Column="1" Text="{Binding Name}"/><TextBlock Grid.Column="2" Text="{Binding Status}" Foreground="#8FA2B8"/></Grid></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                        <ItemsControl x:Name="CompactInstanceList" Margin="0,10,0,0"><ItemsControl.ItemTemplate><DataTemplate><Grid Margin="0,3"><Grid.ColumnDefinitions><ColumnDefinition Width="24"/><ColumnDefinition Width="*"/><ColumnDefinition Width="65"/></Grid.ColumnDefinitions><CheckBox IsChecked="{Binding IsSelected}"/><StackPanel Grid.Column="1"><TextBlock Text="{Binding Name}"/><TextBlock Text="{Binding AccountAlias}" FontSize="10" Foreground="#F6C453"/></StackPanel><TextBlock Grid.Column="2" Text="{Binding Status}" Foreground="#8FA2B8"/></Grid></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
                         <Button Content="선택 AVD 복제" Margin="0,9,0,0" Style="{StaticResource B}" Click="CloneSelectedAvd_Click"/></StackPanel>
+                    </Border>
+
+                    <Border Margin="0,10,0,0" Background="{StaticResource Panel}" BorderBrush="{StaticResource Border}" BorderThickness="1" CornerRadius="9" Padding="12">
+                        <StackPanel>
+                            <TextBlock Text="인스턴스 그룹 / 자동 시작" FontWeight="Bold"/>
+                            <ComboBox x:Name="GroupComboBox" Height="30" Margin="0,8,0,0" SelectionChanged="GroupComboBox_SelectionChanged"/>
+                            <Grid Margin="0,7,0,0">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <TextBox x:Name="GroupNameTextBox" Text="기본 그룹"/>
+                                <Button Grid.Column="1" Content="그룹 저장" Margin="6,0,0,0" Style="{StaticResource B}" Click="SaveGroupButton_Click"/>
+                            </Grid>
+                            <Grid Margin="0,7,0,0">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <StackPanel Margin="0,0,4,0">
+                                    <TextBlock Text="시작 재시도 횟수" FontSize="11"/>
+                                    <TextBox x:Name="RetryCountTextBox" Text="2"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Margin="4,0,0,0">
+                                    <TextBlock Text="헬스체크" FontSize="11"/>
+                                    <TextBlock x:Name="HealthSummaryText" Text="대기" Foreground="#91A5BC" Margin="0,8,0,0"/>
+                                </StackPanel>
+                            </Grid>
+                            <Button Content="그룹 자동 시작" Margin="0,8,0,0" Style="{StaticResource B}" Background="#0B77F3" Click="RunGroupScenarioButton_Click"/>
+                        </StackPanel>
                     </Border>
 
                     <Border Margin="0,10,0,0" Background="{StaticResource Panel}" BorderBrush="{StaticResource Border}" BorderThickness="1" CornerRadius="9" Padding="12">
@@ -62,6 +86,30 @@
                         <StackPanel Margin="0,8,0,0"><TextBlock Text="게임 자동실행 지연(ms)" FontSize="11"/><TextBox x:Name="AutoLaunchDelayTextBox" Text="1500"/></StackPanel>
                         <Button Content="선택 인스턴스에서 게임 실행" Margin="0,9,0,0" Style="{StaticResource B}" Background="#16A861" Click="LaunchGameButton_Click"/>
                         <Button Content="프로필 원클릭 실행" Margin="0,6,0,0" Style="{StaticResource B}" Background="#1667C9" Click="RunProfileButton_Click"/></StackPanel>
+                    </Border>
+
+                    <Border Margin="0,10,0,0" Background="{StaticResource Panel}" BorderBrush="{StaticResource Border}" BorderThickness="1" CornerRadius="9" Padding="12">
+                        <StackPanel>
+                            <TextBlock Text="Google Play 게임 설치" FontWeight="Bold"/>
+                            <TextBlock Text="선택 인스턴스 계정 별칭" Margin="0,8,0,3"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <TextBox x:Name="AccountAliasTextBox" Text="google01"/>
+                                <Button Grid.Column="1" Content="별칭 저장" Margin="6,0,0,0" Style="{StaticResource B}" Click="SaveAccountAliasButton_Click"/>
+                            </Grid>
+                            <Button Content="Google 계정 추가/로그인" Margin="0,7,0,0" Style="{StaticResource B}" Background="#EA4335" Click="OpenGoogleAccountButton_Click"/>
+                            <TextBlock Text="게임 이름 검색" Margin="0,8,0,3"/>
+                            <TextBox x:Name="PlayStoreSearchTextBox" Text="게임 이름"/>
+                            <Grid Margin="0,7,0,0">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <Button Content="Play 스토어 검색" Style="{StaticResource B}" Margin="0,0,4,0" Background="#0F9D58" Click="SearchPlayStoreButton_Click"/>
+                                <Button Grid.Column="1" Content="패키지 페이지" Style="{StaticResource B}" Margin="4,0,0,0" Background="#185ABC" Click="OpenPlayStoreDetailsButton_Click"/>
+                            </Grid>
+                            <CheckBox x:Name="AutoPlayAfterInstallCheckBox" Content="설치 완료 후 자동 플레이" IsChecked="True" Margin="0,8,0,0"/>
+                            <Button Content="설치 완료 감지" Margin="0,7,0,0" Style="{StaticResource B}" Background="#7C3AED" Click="WatchPlayStoreInstallButton_Click"/>
+                            <Button Content="플레이" Margin="0,6,0,0" Style="{StaticResource B}" Background="#16A861" Click="PlayInstalledGameButton_Click"/>
+                            <TextBlock x:Name="PlayStoreStatusText" Text="대기" Foreground="#91A5BC" Margin="0,8,0,0" TextWrapping="Wrap"/>
+                        </StackPanel>
                     </Border>
 
                     <Border Margin="0,10,0,0" Background="{StaticResource Panel}" BorderBrush="{StaticResource Border}" BorderThickness="1" CornerRadius="9" Padding="12"><StackPanel><TextBlock Text="APK 설치" FontWeight="Bold"/><TextBlock Text="APK를 창에 드롭하거나 파일 선택" Foreground="#91A5BC" Margin="0,6,0,0"/><Button Content="APK 파일 선택" Margin="0,7,0,0" Style="{StaticResource B}" Click="SelectApkButton_Click"/></StackPanel></Border>

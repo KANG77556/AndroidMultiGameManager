@@ -10,6 +10,8 @@ public sealed class AvdItem : INotifyPropertyChanged
     private string _deviceSerial = "-";
     private int _maxFps = 60;
     private int _maxSize = 1080;
+    private string _health = "미확인";
+    private string _accountAlias = "미지정";
 
     public string Name { get; init; } = string.Empty;
 
@@ -18,6 +20,8 @@ public sealed class AvdItem : INotifyPropertyChanged
     public string DeviceSerial { get => _deviceSerial; set { _deviceSerial=value; OnPropertyChanged(); } }
     public int MaxFps { get => _maxFps; set { _maxFps=Math.Clamp(value,15,240); OnPropertyChanged(); } }
     public int MaxSize { get => _maxSize; set { _maxSize=Math.Clamp(value,480,2160); OnPropertyChanged(); } }
+    public string Health { get => _health; set { _health=value; OnPropertyChanged(); } }
+    public string AccountAlias { get => _accountAlias; set { _accountAlias=value; OnPropertyChanged(); } }
 
     public event PropertyChangedEventHandler? PropertyChanged;
     private void OnPropertyChanged([CallerMemberName] string? name=null)=>PropertyChanged?.Invoke(this,new PropertyChangedEventArgs(name));
