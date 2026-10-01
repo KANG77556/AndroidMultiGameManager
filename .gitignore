@@ -10,3 +10,8 @@ MaintenanceSmokeTest/obj/
 .vs/
 *.user
 *.suo
+
+MaintenanceSmokeTest/
+install-test/
+installer-v15*.iss
+installer.iss
