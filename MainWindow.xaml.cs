@@ -28,7 +28,7 @@ public partial class MainWindow : Window
         _settings=SettingsService.Load();
         _profiles=GameProfileService.Load();
         _groups=InstanceGroupService.Load();
-        PackageTextBox.Text=string.IsNullOrWhiteSpace(_settings.PackageName)?"com.example.game":_settings.PackageName;
+        PackageTextBox.Text=AndroidSdkService.IsValidPackageName(_settings.PackageName)?_settings.PackageName:"";
         CpuCoresTextBox.Text=_settings.CpuCores.ToString();
         MemoryMbTextBox.Text=_settings.MemoryMb.ToString();
         RetryCountTextBox.Text=_settings.StartRetryCount.ToString();
@@ -592,7 +592,24 @@ public partial class MainWindow : Window
 
     private void LayoutComboBox_SelectionChanged(object s,SelectionChangedEventArgs e){ApplyLayout();SaveSettings();}
     private void Window_SizeChanged(object s,SizeChangedEventArgs e){if(IsLoaded)ApplyLayout();}
-    private void ApplyLayout(){if(CardItems is null||LayoutComboBox is null)return;var mode=(LayoutComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString()??"자동";var avail=Math.Max(600,ActualWidth-350);var col=mode switch{"2×2"=>2,"3×2"=>3,_=>avail>=1280?3:2};CardItems.Tag=Math.Clamp((avail-col*16)/col,300,560);}
+    private void ApplyLayout()
+    {
+        if(CardItems is null||LayoutComboBox is null)return;
+
+        var mode=(LayoutComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString()??"자동";
+        var available=Math.Max(620,ActualWidth-360);
+        var columns=mode switch
+        {
+            "2×2"=>2,
+            "3×2"=>3,
+            _=>available>=980?3:2
+        };
+
+        var cardWidth=columns>=3?292d:304d;
+        CardItems.Tag=cardWidth;
+        CardItems.Width=(cardWidth+14)*columns;
+        CardItems.HorizontalAlignment=HorizontalAlignment.Left;
+    }
     private void ApplySavedLayoutSelection(){var wanted=_settings.LayoutMode;foreach(var i in LayoutComboBox.Items.OfType<ComboBoxItem>())if((i.Content?.ToString()??"")==wanted){LayoutComboBox.SelectedItem=i;break;}}
     private void SaveSettings(){try{SettingsService.Save(new AppSettings{PackageName=PackageTextBox.Text.Trim(),LayoutMode=(LayoutComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString()??"자동",SelectedAvds=_items.Where(x=>x.IsSelected).Select(x=>x.Name).ToList(),CpuCores=GetCpu(),MemoryMb=GetMemory(),SyncClick=SyncClickCheckBox.IsChecked==true,RunAtStartup=RunAtStartupCheckBox.IsChecked==true,StartRetryCount=GetRetryCount()});}catch(Exception ex){AppMaintenanceService.AppendLog("설정 저장 실패: "+ex.Message);}}
 

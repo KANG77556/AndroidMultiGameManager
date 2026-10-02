@@ -2,48 +2,106 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:AndroidMultiGameManager"
-        Title="Android 게임 멀티 실행기" Height="900" Width="1480" MinHeight="760" MinWidth="1180"
+        Title="Android 게임 멀티 실행기" Height="920" Width="1500" MinHeight="780" MinWidth="1180"
         WindowStartupLocation="CenterScreen" Background="#07111F" Foreground="#EAF2FF"
         AllowDrop="True" Drop="Window_Drop" SizeChanged="Window_SizeChanged">
     <Window.Resources>
         <SolidColorBrush x:Key="Panel" Color="#0C192A"/>
+        <SolidColorBrush x:Key="Panel2" Color="#0A1625"/>
         <SolidColorBrush x:Key="Border" Color="#1D3550"/>
-        <Style TargetType="Button" x:Key="B"><Setter Property="Foreground" Value="White"/><Setter Property="Background" Value="#17375A"/><Setter Property="BorderThickness" Value="0"/><Setter Property="Padding" Value="12,8"/><Setter Property="Margin" Value="0,0,7,0"/></Style>
-        <Style TargetType="TextBox"><Setter Property="Background" Value="#091728"/><Setter Property="Foreground" Value="White"/><Setter Property="BorderBrush" Value="#284667"/><Setter Property="Padding" Value="8,5"/></Style>
+        <Style TargetType="Button" x:Key="B">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="#17375A"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="12,9"/>
+            <Setter Property="Margin" Value="0,0,7,0"/>
+        </Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="#091728"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#284667"/>
+            <Setter Property="Padding" Value="8,6"/>
+        </Style>
+        <Style TargetType="ComboBox">
+            <Setter Property="Background" Value="#091728"/>
+            <Setter Property="Foreground" Value="#EAF2FF"/>
+            <Setter Property="BorderBrush" Value="#284667"/>
+        </Style>
+
         <DataTemplate x:Key="Card">
-            <Border Width="{Binding RelativeSource={RelativeSource AncestorType=ItemsControl},Path=Tag}" Height="250" Margin="0,0,12,12" CornerRadius="9" BorderBrush="#203D5F" BorderThickness="1" Background="#0B1727">
+            <Border Width="{Binding RelativeSource={RelativeSource AncestorType=ItemsControl},Path=Tag}"
+                    Height="600" Margin="0,0,14,14" CornerRadius="18"
+                    BorderBrush="#2C4B6A" BorderThickness="1" Background="#0B1727">
                 <Grid>
-                    <Grid.RowDefinitions><RowDefinition Height="45"/><RowDefinition Height="*"/><RowDefinition Height="45"/></Grid.RowDefinitions>
-                    <Grid Margin="10,0">
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                        <CheckBox IsChecked="{Binding IsSelected}" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                        <StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock Text="{Binding Name}" FontWeight="Bold"/><StackPanel Orientation="Horizontal"><TextBlock Text="{Binding DeviceSerial}" FontSize="10" Foreground="#8297AD"/><TextBlock Text="  /  " FontSize="10" Foreground="#60758B"/><TextBlock Text="{Binding AccountAlias}" FontSize="10" Foreground="#F6C453"/><TextBlock Text="  /  " FontSize="10" Foreground="#60758B"/><TextBlock Text="{Binding GoogleAccountStatus}" FontSize="10" Foreground="#7DD3FC"/></StackPanel></StackPanel>
-                        <TextBlock Grid.Column="2" Text="{Binding Status}" Foreground="#21D07A" VerticalAlignment="Center"/>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="58"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="54"/>
+                    </Grid.RowDefinitions>
+
+                    <Grid Margin="12,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <CheckBox IsChecked="{Binding IsSelected}" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="15"/>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{Binding AccountAlias}" FontSize="10" Foreground="#F6C453"/>
+                                <TextBlock Text="  ·  " FontSize="10" Foreground="#60758B"/>
+                                <TextBlock Text="{Binding GoogleAccountStatus}" FontSize="10" Foreground="#7DD3FC"/>
+                            </StackPanel>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Right">
+                            <TextBlock Text="{Binding Status}" Foreground="#21D07A" FontSize="11" HorizontalAlignment="Right"/>
+                            <TextBlock Text="{Binding DeviceSerial}" Foreground="#70859A" FontSize="9" HorizontalAlignment="Right"/>
+                        </StackPanel>
                     </Grid>
-                    <Border Grid.Row="1" Margin="6" Background="#02070D" CornerRadius="6" ClipToBounds="True">
-                        <Grid>
-                            <local:ScrcpyHost x:Name="PreviewHost" DeviceSerial="{Binding DeviceSerial}" MaxFps="{Binding MaxFps}" MaxSize="{Binding MaxSize}" TapCaptured="ScrcpyHost_TapCaptured" SwipeCaptured="ScrcpyHost_SwipeCaptured" KeyCaptured="ScrcpyHost_KeyCaptured"/>
-                            <Border Background="#9902070D" Padding="10" HorizontalAlignment="Center" VerticalAlignment="Center" CornerRadius="6">
-                                <Border.Style>
-                                    <Style TargetType="Border">
-                                        <Setter Property="Visibility" Value="Visible"/>
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding ElementName=PreviewHost,Path=StatusMessage}" Value="">
-                                                <Setter Property="Visibility" Value="Collapsed"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Border.Style>
-                                <TextBlock Text="{Binding ElementName=PreviewHost,Path=StatusMessage}" Foreground="#E2E8F0" FontSize="12" TextWrapping="Wrap" TextAlignment="Center"/>
-                            </Border>
-                        </Grid>
-                    </Border>
-                    <Grid Grid.Row="2" Background="#091523">
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="58"/><ColumnDefinition Width="72"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                        <TextBox Grid.Column="0" Text="{Binding MaxFps,UpdateSourceTrigger=PropertyChanged}" ToolTip="FPS" Margin="6,6,3,6"/>
-                        <TextBox Grid.Column="1" Text="{Binding MaxSize,UpdateSourceTrigger=PropertyChanged}" ToolTip="최대 해상도" Margin="3,6,3,6"/>
-                        <Button Grid.Column="2" Tag="{Binding}" Content="실행" Style="{StaticResource B}" Margin="3,6,3,6" Background="#126DE5" Click="CardStart_Click"/>
-                        <Button Grid.Column="3" Tag="{Binding}" Content="종료" Style="{StaticResource B}" Margin="3,6,6,6" Background="#9F2F3F" Click="CardStop_Click"/>
+
+                    <Grid Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <Border Width="270" Height="480" Background="#02070D" CornerRadius="16"
+                                BorderBrush="#34506D" BorderThickness="2" ClipToBounds="True">
+                            <Grid>
+                                <local:ScrcpyHost x:Name="PreviewHost"
+                                                  DeviceSerial="{Binding DeviceSerial}"
+                                                  MaxFps="{Binding MaxFps}"
+                                                  MaxSize="{Binding MaxSize}"
+                                                  TapCaptured="ScrcpyHost_TapCaptured"
+                                                  SwipeCaptured="ScrcpyHost_SwipeCaptured"
+                                                  KeyCaptured="ScrcpyHost_KeyCaptured"/>
+                                <Border Background="#CC02070D" Padding="12"
+                                        HorizontalAlignment="Center" VerticalAlignment="Center" CornerRadius="8">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding ElementName=PreviewHost,Path=StatusMessage}" Value="">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <TextBlock Text="{Binding ElementName=PreviewHost,Path=StatusMessage}"
+                                               Foreground="#E2E8F0" FontSize="12"
+                                               TextWrapping="Wrap" TextAlignment="Center" MaxWidth="210"/>
+                                </Border>
+                            </Grid>
+                        </Border>
+                    </Grid>
+
+                    <Grid Grid.Row="2" Margin="10,5,10,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Button Grid.Column="0" Tag="{Binding}" Content="실행"
+                                Style="{StaticResource B}" Margin="0,0,5,0"
+                                Background="#126DE5" Click="CardStart_Click"/>
+                        <Button Grid.Column="1" Tag="{Binding}" Content="종료"
+                                Style="{StaticResource B}" Margin="5,0,0,0"
+                                Background="#9F2F3F" Click="CardStop_Click"/>
                     </Grid>
                 </Grid>
             </Border>
@@ -51,119 +109,381 @@
     </Window.Resources>
 
     <Grid>
-        <Grid.RowDefinitions><RowDefinition Height="58"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="62"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
         <Border Background="#0B1A2B" BorderBrush="#18324E" BorderThickness="0,0,0,1">
-            <Grid Margin="16,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center"><Border Width="34" Height="34" CornerRadius="8" Background="#7138D5"><TextBlock Text="G" FontSize="20" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><TextBlock Text="Android 게임 멀티 실행기" FontSize="20" FontWeight="Bold" Margin="12,0,0,0" VerticalAlignment="Center"/><TextBlock Text="v1.8.2" Foreground="#8EA2B8" Margin="8,0,0,0" VerticalAlignment="Center"/></StackPanel>
-                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center"><TextBlock x:Name="ClockText" Foreground="#A8BAD0" VerticalAlignment="Center" Margin="0,0,10,0"/><Button Content="업데이트 확인" Style="{StaticResource B}" Click="CheckUpdateButton_Click"/></StackPanel>
+            <Grid Margin="16,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Width="36" Height="36" CornerRadius="9" Background="#7138D5">
+                        <TextBlock Text="G" FontSize="20" FontWeight="Bold"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <TextBlock Text="Android 게임 멀티 실행기" FontSize="20" FontWeight="Bold"
+                               Margin="12,0,0,0" VerticalAlignment="Center"/>
+                    <TextBlock Text="v1.9.0" Foreground="#8EA2B8" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock x:Name="ClockText" Foreground="#A8BAD0" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                    <Button Content="업데이트 확인" Style="{StaticResource B}" Click="CheckUpdateButton_Click"/>
+                </StackPanel>
             </Grid>
         </Border>
 
-        <Grid Grid.Row="1"><Grid.ColumnDefinitions><ColumnDefinition Width="320"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="310"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
             <ScrollViewer Background="#081422" VerticalScrollBarVisibility="Auto">
                 <StackPanel Margin="12">
-                    <Border Background="{StaticResource Panel}" BorderBrush="{StaticResource Border}" BorderThickness="1" CornerRadius="9" Padding="12">
-                        <StackPanel><Grid><TextBlock Text="인스턴스" FontWeight="Bold"/><Button x:Name="RefreshButton" Content="새로고침" HorizontalAlignment="Right" Style="{StaticResource B}" Click="RefreshButton_Click"/></Grid>
-                        <ItemsControl x:Name="CompactInstanceList" Margin="0,10,0,0"><ItemsControl.ItemTemplate><DataTemplate><Grid Margin="0,3"><Grid.ColumnDefinitions><ColumnDefinition Width="24"/><ColumnDefinition Width="*"/><ColumnDefinition Width="65"/></Grid.ColumnDefinitions><CheckBox IsChecked="{Binding IsSelected}"/><StackPanel Grid.Column="1"><TextBlock Text="{Binding Name}"/><TextBlock Text="{Binding AccountAlias}" FontSize="10" Foreground="#F6C453"/><TextBlock Text="  /  " FontSize="10" Foreground="#60758B"/><TextBlock Text="{Binding GoogleAccountStatus}" FontSize="10" Foreground="#7DD3FC"/></StackPanel><TextBlock Grid.Column="2" Text="{Binding Status}" Foreground="#8FA2B8"/></Grid></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
-                        <Button Content="선택 AVD 복제" Margin="0,9,0,0" Style="{StaticResource B}" Click="CloneSelectedAvd_Click"/></StackPanel>
-                    </Border>
 
-                    <Border Margin="0,10,0,0" Background="{StaticResource Panel}" BorderBrush="{StaticResource Border}" BorderThickness="1" CornerRadius="9" Padding="12">
+                    <Border Background="#0F2236" BorderBrush="#2B5379" BorderThickness="1"
+                            CornerRadius="12" Padding="14">
                         <StackPanel>
-                            <TextBlock Text="인스턴스 그룹 / 자동 시작" FontWeight="Bold"/>
-                            <ComboBox x:Name="GroupComboBox" Height="30" Margin="0,8,0,0" SelectionChanged="GroupComboBox_SelectionChanged"/>
-                            <Grid Margin="0,7,0,0">
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                <TextBox x:Name="GroupNameTextBox" Text="기본 그룹"/>
-                                <Button Grid.Column="1" Content="그룹 저장" Margin="6,0,0,0" Style="{StaticResource B}" Click="SaveGroupButton_Click"/>
-                            </Grid>
-                            <Grid Margin="0,7,0,0">
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                <StackPanel Margin="0,0,4,0">
-                                    <TextBlock Text="시작 재시도 횟수" FontSize="11"/>
-                                    <TextBox x:Name="RetryCountTextBox" Text="2"/>
-                                </StackPanel>
-                                <StackPanel Grid.Column="1" Margin="4,0,0,0">
-                                    <TextBlock Text="헬스체크" FontSize="11"/>
-                                    <TextBlock x:Name="HealthSummaryText" Text="대기" Foreground="#91A5BC" Margin="0,8,0,0"/>
-                                </StackPanel>
-                            </Grid>
-                            <Button Content="그룹 자동 시작" Margin="0,8,0,0" Style="{StaticResource B}" Background="#0B77F3" Click="RunGroupScenarioButton_Click"/>
-                        </StackPanel>
-                    </Border>
+                            <TextBlock Text="빠른 시작" FontSize="18" FontWeight="Bold"/>
+                            <TextBlock Text="아래 4단계만 사용하면 됩니다." Foreground="#91A5BC" Margin="0,4,0,10"/>
 
-                    <Border Margin="0,10,0,0" Background="{StaticResource Panel}" BorderBrush="{StaticResource Border}" BorderThickness="1" CornerRadius="9" Padding="12">
-                        <StackPanel><TextBlock Text="게임 프로필" FontWeight="Bold"/><ComboBox x:Name="ProfileComboBox" Margin="0,8,0,0" Height="30" SelectionChanged="ProfileComboBox_SelectionChanged"/><Grid Margin="0,7,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBox x:Name="ProfileNameTextBox" Text="기본"/><Button Grid.Column="1" Content="저장" Margin="6,0,0,0" Style="{StaticResource B}" Click="SaveProfileButton_Click"/></Grid>
-                        <TextBlock Text="패키지명" Margin="0,8,0,3"/><TextBox x:Name="PackageTextBox" Text="com.example.game"/>
-                        <Grid Margin="0,7,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><ComboBox x:Name="InstalledAppsComboBox" Height="30" SelectionChanged="InstalledAppsComboBox_SelectionChanged"/><Button Grid.Column="1" Content="앱 조회" Margin="6,0,0,0" Style="{StaticResource B}" Click="RefreshAppsButton_Click"/></Grid>
-                        <Grid Margin="0,8,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><StackPanel Margin="0,0,4,0"><TextBlock Text="CPU 코어" FontSize="11"/><TextBox x:Name="CpuCoresTextBox" Text="4"/></StackPanel><StackPanel Grid.Column="1" Margin="4,0,0,0"><TextBlock Text="RAM(MB)" FontSize="11"/><TextBox x:Name="MemoryMbTextBox" Text="4096"/></StackPanel></Grid>
-                        <Grid Margin="0,8,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><StackPanel Margin="0,0,4,0"><TextBlock Text="기본 FPS" FontSize="11"/><TextBox x:Name="ProfileFpsTextBox" Text="60"/></StackPanel><StackPanel Grid.Column="1" Margin="4,0,0,0"><TextBlock Text="최대 해상도" FontSize="11"/><TextBox x:Name="ProfileSizeTextBox" Text="1080"/></StackPanel></Grid>
-                        <StackPanel Margin="0,8,0,0"><TextBlock Text="게임 자동실행 지연(ms)" FontSize="11"/><TextBox x:Name="AutoLaunchDelayTextBox" Text="1500"/></StackPanel>
-                        <Button Content="선택 인스턴스에서 게임 실행" Margin="0,9,0,0" Style="{StaticResource B}" Background="#16A861" Click="LaunchGameButton_Click"/>
-                        <Button Content="프로필 원클릭 실행" Margin="0,6,0,0" Style="{StaticResource B}" Background="#1667C9" Click="RunProfileButton_Click"/></StackPanel>
-                    </Border>
-
-                    <Border Margin="0,10,0,0" Background="{StaticResource Panel}" BorderBrush="{StaticResource Border}" BorderThickness="1" CornerRadius="9" Padding="12">
-                        <StackPanel>
-                            <TextBlock Text="Google Play 게임 설치" FontWeight="Bold"/>
-                            <TextBlock Text="선택 인스턴스 계정 별칭" Margin="0,8,0,3"/>
-                            <Grid>
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                <TextBox x:Name="AccountAliasTextBox" Text="google01"/>
-                                <Button Grid.Column="1" Content="별칭 저장" Margin="6,0,0,0" Style="{StaticResource B}" Click="SaveAccountAliasButton_Click"/>
+                            <TextBlock Text="1. 인스턴스 선택" FontWeight="Bold" Foreground="#7DD3FC"/>
+                            <ItemsControl x:Name="CompactInstanceList" Margin="0,7,0,0">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Margin="0,4">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="24"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="62"/>
+                                            </Grid.ColumnDefinitions>
+                                            <CheckBox IsChecked="{Binding IsSelected}"/>
+                                            <StackPanel Grid.Column="1">
+                                                <TextBlock Text="{Binding Name}"/>
+                                                <TextBlock Text="{Binding AccountAlias}" FontSize="10" Foreground="#F6C453"/>
+                                            </StackPanel>
+                                            <TextBlock Grid.Column="2" Text="{Binding Status}" Foreground="#8FA2B8"
+                                                       HorizontalAlignment="Right"/>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <Grid Margin="0,8,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Button x:Name="RefreshButton" Content="새로고침" Style="{StaticResource B}"
+                                        Margin="0,0,4,0" Click="RefreshButton_Click"/>
+                                <Button Grid.Column="1" Content="인스턴스 추가" Style="{StaticResource B}"
+                                        Margin="4,0,0,0" Background="#23507B" Click="CloneSelectedAvd_Click"/>
                             </Grid>
-                            <Button Content="Google 계정 추가/로그인" Margin="0,7,0,0" Style="{StaticResource B}" Background="#EA4335" Click="OpenGoogleAccountButton_Click"/>
+
+                            <Border Height="1" Background="#24405C" Margin="0,12"/>
+
+                            <TextBlock Text="2. Google 로그인" FontWeight="Bold" Foreground="#7DD3FC"/>
+                            <TextBlock Text="선택한 인스턴스마다 서로 다른 계정으로 로그인할 수 있습니다."
+                                       Foreground="#91A5BC" FontSize="11" TextWrapping="Wrap" Margin="0,4,0,7"/>
+                            <TextBox x:Name="AccountAliasTextBox" Text="google01" ToolTip="계정 구분용 별칭"/>
+                            <Grid Margin="0,7,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <Button Content="Google 로그인" Style="{StaticResource B}" Background="#EA4335"
+                                        Click="OpenGoogleAccountButton_Click"/>
+                                <Button Grid.Column="1" Content="별칭 저장" Style="{StaticResource B}" Margin="6,0,0,0"
+                                        Click="SaveAccountAliasButton_Click"/>
+                            </Grid>
                             <Grid Margin="0,6,0,0">
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                <Button Content="로그인 상태 점검" Style="{StaticResource B}" Margin="0,0,4,0" Background="#334155" Click="CheckGoogleAccountsButton_Click"/>
-                                <Button Grid.Column="1" Content="미로그인만 열기" Style="{StaticResource B}" Margin="4,0,0,0" Background="#B45309" Click="OpenMissingGoogleAccountsButton_Click"/>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Button Content="로그인 상태 확인" Style="{StaticResource B}" Margin="0,0,4,0"
+                                        Background="#334155" Click="CheckGoogleAccountsButton_Click"/>
+                                <Button Grid.Column="1" Content="미로그인만 열기" Style="{StaticResource B}" Margin="4,0,0,0"
+                                        Background="#B45309" Click="OpenMissingGoogleAccountsButton_Click"/>
                             </Grid>
-                            <TextBlock Text="게임 이름 검색" Margin="0,8,0,3"/>
-                            <TextBox x:Name="PlayStoreSearchTextBox" Text="게임 이름"/>
+
+                            <Border Height="1" Background="#24405C" Margin="0,12"/>
+
+                            <TextBlock Text="3. 게임 설치" FontWeight="Bold" Foreground="#7DD3FC"/>
+                            <TextBox x:Name="PlayStoreSearchTextBox" Text="게임 이름" Margin="0,7,0,0"/>
+                            <Button Content="Play 스토어에서 게임 찾기" Style="{StaticResource B}"
+                                    Margin="0,7,0,0" Background="#0F9D58" Click="SearchPlayStoreButton_Click"/>
+                            <CheckBox x:Name="AutoPlayAfterInstallCheckBox" Content="설치 완료 후 자동 실행"
+                                      IsChecked="True" Margin="0,8,0,0"/>
+                            <Button Content="설치 완료 감지" Style="{StaticResource B}"
+                                    Margin="0,7,0,0" Background="#7C3AED" Click="WatchPlayStoreInstallButton_Click"/>
+                            <TextBlock x:Name="PlayStoreStatusText" Text="대기" Foreground="#91A5BC"
+                                       Margin="0,7,0,0" TextWrapping="Wrap"/>
+
+                            <Border Height="1" Background="#24405C" Margin="0,12"/>
+
+                            <TextBlock Text="4. 실행" FontWeight="Bold" Foreground="#7DD3FC"/>
                             <Grid Margin="0,7,0,0">
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                <Button Content="Play 스토어 검색" Style="{StaticResource B}" Margin="0,0,4,0" Background="#0F9D58" Click="SearchPlayStoreButton_Click"/>
-                                <Button Grid.Column="1" Content="패키지 페이지" Style="{StaticResource B}" Margin="4,0,0,0" Background="#185ABC" Click="OpenPlayStoreDetailsButton_Click"/>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Button x:Name="StartSelectedButton" Content="선택 실행" Style="{StaticResource B}"
+                                        Margin="0,0,4,0" Background="#0B77F3" Click="StartSelectedButton_Click"/>
+                                <Button Grid.Column="1" Content="게임 실행" Style="{StaticResource B}"
+                                        Margin="4,0,0,0" Background="#16A861" Click="PlayInstalledGameButton_Click"/>
                             </Grid>
-                            <CheckBox x:Name="AutoPlayAfterInstallCheckBox" Content="설치 완료 후 자동 플레이" IsChecked="True" Margin="0,8,0,0"/>
-                            <Button Content="설치 완료 감지" Margin="0,7,0,0" Style="{StaticResource B}" Background="#7C3AED" Click="WatchPlayStoreInstallButton_Click"/>
-                            <Button Content="플레이" Margin="0,6,0,0" Style="{StaticResource B}" Background="#16A861" Click="PlayInstalledGameButton_Click"/>
-                            <TextBlock x:Name="PlayStoreStatusText" Text="대기" Foreground="#91A5BC" Margin="0,8,0,0" TextWrapping="Wrap"/>
+                            <Button x:Name="StopAllButton" Content="전체 종료" Style="{StaticResource B}"
+                                    Margin="0,7,0,0" Background="#9F2F3F" Click="StopAllButton_Click"/>
                         </StackPanel>
                     </Border>
 
-                    <Border Margin="0,10,0,0" Background="{StaticResource Panel}" BorderBrush="{StaticResource Border}" BorderThickness="1" CornerRadius="9" Padding="12"><StackPanel><TextBlock Text="APK 설치" FontWeight="Bold"/><TextBlock Text="APK를 창에 드롭하거나 파일 선택" Foreground="#91A5BC" Margin="0,6,0,0"/><Button Content="APK 파일 선택" Margin="0,7,0,0" Style="{StaticResource B}" Click="SelectApkButton_Click"/></StackPanel></Border>
+                    <Expander Header="⚙ 고급 설정" Margin="0,12,0,0" Foreground="#EAF2FF" IsExpanded="False">
+                        <StackPanel Margin="0,10,0,0">
 
-                    <Border Margin="0,10,0,0" Background="{StaticResource Panel}" BorderBrush="{StaticResource Border}" BorderThickness="1" CornerRadius="9" Padding="12">
-                        <StackPanel><TextBlock Text="동기 입력" FontWeight="Bold"/><CheckBox x:Name="SyncClickCheckBox" Content="실시간 동기 입력(클릭/스와이프/키)" Margin="0,8,0,0"/>
-                        <Grid Margin="0,7,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><TextBox x:Name="SyncXTextBox" Text="500" Margin="0,0,4,0"/><TextBox x:Name="SyncYTextBox" Grid.Column="1" Text="500" Margin="4,0,0,0"/></Grid><Button Content="좌표 동시 클릭" Margin="0,6,0,0" Style="{StaticResource B}" Click="SyncTapButton_Click"/>
-                        <TextBox x:Name="SyncTextBox" Text="hello" Margin="0,7,0,0"/><Button Content="문자 동시 입력" Margin="0,6,0,0" Style="{StaticResource B}" Click="SyncTextButton_Click"/>
-                        <Grid Margin="0,7,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBox x:Name="KeyCodeTextBox" Text="4"/><Button Grid.Column="1" Content="키 전송" Margin="6,0,0,0" Style="{StaticResource B}" Click="SyncKeyButton_Click"/></Grid></StackPanel>
-                    </Border>
+                            <Border Background="{StaticResource Panel}" BorderBrush="{StaticResource Border}"
+                                    BorderThickness="1" CornerRadius="9" Padding="12">
+                                <StackPanel>
+                                    <TextBlock Text="인스턴스 그룹 / 자동 시작" FontWeight="Bold"/>
+                                    <ComboBox x:Name="GroupComboBox" Height="30" Margin="0,8,0,0"
+                                              SelectionChanged="GroupComboBox_SelectionChanged"/>
+                                    <Grid Margin="0,7,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBox x:Name="GroupNameTextBox" Text="기본 그룹"/>
+                                        <Button Grid.Column="1" Content="그룹 저장" Margin="6,0,0,0"
+                                                Style="{StaticResource B}" Click="SaveGroupButton_Click"/>
+                                    </Grid>
+                                    <Grid Margin="0,7,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Margin="0,0,4,0">
+                                            <TextBlock Text="시작 재시도 횟수" FontSize="11"/>
+                                            <TextBox x:Name="RetryCountTextBox" Text="2"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1" Margin="4,0,0,0">
+                                            <TextBlock Text="헬스체크" FontSize="11"/>
+                                            <TextBlock x:Name="HealthSummaryText" Text="대기" Foreground="#91A5BC" Margin="0,8,0,0"/>
+                                        </StackPanel>
+                                    </Grid>
+                                    <Button Content="그룹 자동 시작" Margin="0,8,0,0" Style="{StaticResource B}"
+                                            Background="#0B77F3" Click="RunGroupScenarioButton_Click"/>
+                                </StackPanel>
+                            </Border>
 
-                    <Border Margin="0,10,0,0" Background="{StaticResource Panel}" BorderBrush="{StaticResource Border}" BorderThickness="1" CornerRadius="9" Padding="12">
-                        <StackPanel>
-                            <TextBlock Text="유지보수" FontWeight="Bold"/>
-                            <CheckBox x:Name="RunAtStartupCheckBox" Content="Windows 시작 시 자동 실행" Margin="0,8,0,0" Checked="RunAtStartupCheckBox_Changed" Unchecked="RunAtStartupCheckBox_Changed"/>
-                            <Button Content="설정 백업" Margin="0,7,0,0" Style="{StaticResource B}" Click="BackupSettingsButton_Click"/>
-                            <Button Content="백업 복원" Margin="0,6,0,0" Style="{StaticResource B}" Click="RestoreSettingsButton_Click"/>
-                            <Button Content="로그 폴더 열기" Margin="0,6,0,0" Style="{StaticResource B}" Click="OpenLogFolderButton_Click"/>
+                            <Border Margin="0,10,0,0" Background="{StaticResource Panel}" BorderBrush="{StaticResource Border}"
+                                    BorderThickness="1" CornerRadius="9" Padding="12">
+                                <StackPanel>
+                                    <TextBlock Text="게임 프로필 / 성능" FontWeight="Bold"/>
+                                    <ComboBox x:Name="ProfileComboBox" Margin="0,8,0,0" Height="30"
+                                              SelectionChanged="ProfileComboBox_SelectionChanged"/>
+                                    <Grid Margin="0,7,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBox x:Name="ProfileNameTextBox" Text="기본"/>
+                                        <Button Grid.Column="1" Content="저장" Margin="6,0,0,0"
+                                                Style="{StaticResource B}" Click="SaveProfileButton_Click"/>
+                                    </Grid>
+                                    <TextBlock Text="패키지명" Margin="0,8,0,3"/>
+                                    <TextBox x:Name="PackageTextBox" Text=""/>
+                                    <Grid Margin="0,7,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <ComboBox x:Name="InstalledAppsComboBox" Height="30"
+                                                  SelectionChanged="InstalledAppsComboBox_SelectionChanged"/>
+                                        <Button Grid.Column="1" Content="앱 조회" Margin="6,0,0,0"
+                                                Style="{StaticResource B}" Click="RefreshAppsButton_Click"/>
+                                    </Grid>
+                                    <Button Content="패키지 Play 페이지" Margin="0,7,0,0"
+                                            Style="{StaticResource B}" Background="#185ABC"
+                                            Click="OpenPlayStoreDetailsButton_Click"/>
+                                    <Grid Margin="0,8,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Margin="0,0,4,0">
+                                            <TextBlock Text="CPU 코어" FontSize="11"/>
+                                            <TextBox x:Name="CpuCoresTextBox" Text="4"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1" Margin="4,0,0,0">
+                                            <TextBlock Text="RAM(MB)" FontSize="11"/>
+                                            <TextBox x:Name="MemoryMbTextBox" Text="4096"/>
+                                        </StackPanel>
+                                    </Grid>
+                                    <Grid Margin="0,8,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Margin="0,0,4,0">
+                                            <TextBlock Text="기본 FPS" FontSize="11"/>
+                                            <TextBox x:Name="ProfileFpsTextBox" Text="60"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1" Margin="4,0,0,0">
+                                            <TextBlock Text="최대 해상도" FontSize="11"/>
+                                            <TextBox x:Name="ProfileSizeTextBox" Text="1080"/>
+                                        </StackPanel>
+                                    </Grid>
+                                    <TextBlock Text="게임 자동실행 지연(ms)" FontSize="11" Margin="0,8,0,0"/>
+                                    <TextBox x:Name="AutoLaunchDelayTextBox" Text="1500"/>
+                                    <Button Content="선택 인스턴스에서 게임 실행" Margin="0,9,0,0"
+                                            Style="{StaticResource B}" Background="#16A861" Click="LaunchGameButton_Click"/>
+                                    <Button Content="프로필 원클릭 실행" Margin="0,6,0,0"
+                                            Style="{StaticResource B}" Background="#1667C9" Click="RunProfileButton_Click"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Margin="0,10,0,0" Background="{StaticResource Panel}" BorderBrush="{StaticResource Border}"
+                                    BorderThickness="1" CornerRadius="9" Padding="12">
+                                <StackPanel>
+                                    <TextBlock Text="APK 직접 설치" FontWeight="Bold"/>
+                                    <TextBlock Text="APK를 창에 드롭하거나 파일을 선택합니다."
+                                               Foreground="#91A5BC" Margin="0,6,0,0" TextWrapping="Wrap"/>
+                                    <Button Content="APK 파일 선택" Margin="0,7,0,0"
+                                            Style="{StaticResource B}" Click="SelectApkButton_Click"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Margin="0,10,0,0" Background="{StaticResource Panel}" BorderBrush="{StaticResource Border}"
+                                    BorderThickness="1" CornerRadius="9" Padding="12">
+                                <StackPanel>
+                                    <TextBlock Text="동기 입력" FontWeight="Bold"/>
+                                    <CheckBox x:Name="SyncClickCheckBox"
+                                              Content="실시간 동기 입력(클릭/스와이프/키)" Margin="0,8,0,0"/>
+                                    <Grid Margin="0,7,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBox x:Name="SyncXTextBox" Text="500" Margin="0,0,4,0"/>
+                                        <TextBox x:Name="SyncYTextBox" Grid.Column="1" Text="500" Margin="4,0,0,0"/>
+                                    </Grid>
+                                    <Button Content="좌표 동시 클릭" Margin="0,6,0,0"
+                                            Style="{StaticResource B}" Click="SyncTapButton_Click"/>
+                                    <TextBox x:Name="SyncTextBox" Text="hello" Margin="0,7,0,0"/>
+                                    <Button Content="문자 동시 입력" Margin="0,6,0,0"
+                                            Style="{StaticResource B}" Click="SyncTextButton_Click"/>
+                                    <Grid Margin="0,7,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBox x:Name="KeyCodeTextBox" Text="4"/>
+                                        <Button Grid.Column="1" Content="키 전송" Margin="6,0,0,0"
+                                                Style="{StaticResource B}" Click="SyncKeyButton_Click"/>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Margin="0,10,0,0" Background="{StaticResource Panel}" BorderBrush="{StaticResource Border}"
+                                    BorderThickness="1" CornerRadius="9" Padding="12">
+                                <StackPanel>
+                                    <TextBlock Text="유지보수" FontWeight="Bold"/>
+                                    <CheckBox x:Name="RunAtStartupCheckBox" Content="Windows 시작 시 자동 실행"
+                                              Margin="0,8,0,0"
+                                              Checked="RunAtStartupCheckBox_Changed"
+                                              Unchecked="RunAtStartupCheckBox_Changed"/>
+                                    <Button Content="설정 백업" Margin="0,7,0,0"
+                                            Style="{StaticResource B}" Click="BackupSettingsButton_Click"/>
+                                    <Button Content="백업 복원" Margin="0,6,0,0"
+                                            Style="{StaticResource B}" Click="RestoreSettingsButton_Click"/>
+                                    <Button Content="로그 폴더 열기" Margin="0,6,0,0"
+                                            Style="{StaticResource B}" Click="OpenLogFolderButton_Click"/>
+                                    <TextBlock x:Name="SdkPathText" TextWrapping="Wrap" FontSize="10"
+                                               Foreground="#9EB1C7" Margin="0,8,0,0"/>
+                                    <TextBlock x:Name="AdbSummaryText" TextWrapping="Wrap"
+                                               Foreground="#AFC0D3" Margin="0,6,0,0"/>
+                                </StackPanel>
+                            </Border>
                         </StackPanel>
-                    </Border>
-
-                    <Border Margin="0,10,0,0" Background="{StaticResource Panel}" BorderBrush="{StaticResource Border}" BorderThickness="1" CornerRadius="9" Padding="12"><StackPanel><TextBlock Text="SDK / ADB" FontWeight="Bold"/><TextBlock x:Name="SdkPathText" TextWrapping="Wrap" FontSize="10" Foreground="#9EB1C7" Margin="0,6,0,0"/><TextBlock x:Name="AdbSummaryText" TextWrapping="Wrap" Foreground="#AFC0D3" Margin="0,6,0,0"/></StackPanel></Border>
+                    </Expander>
                 </StackPanel>
             </ScrollViewer>
 
-            <Grid Grid.Column="1" Margin="12"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="190"/></Grid.RowDefinitions>
-                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="140"/></Grid.ColumnDefinitions>
-                    <Button x:Name="StartSelectedButton" Content="선택 실행" Style="{StaticResource B}" Background="#0B77F3" Click="StartSelectedButton_Click"/><Button Grid.Column="1" Content="게임 실행" Style="{StaticResource B}" Background="#14A85C" Click="LaunchGameButton_Click"/><Button Grid.Column="2" Content="선택 종료" Style="{StaticResource B}" Background="#C83247" Click="StopSelectedButton_Click"/><Button x:Name="StopAllButton" Grid.Column="3" Content="전체 종료" Style="{StaticResource B}" Background="#6D28D9" Click="StopAllButton_Click"/>
-                    <ComboBox x:Name="LayoutComboBox" Grid.Column="5" Height="30" SelectedIndex="0" SelectionChanged="LayoutComboBox_SelectionChanged"><ComboBoxItem Content="자동"/><ComboBoxItem Content="2×2"/><ComboBoxItem Content="3×2"/></ComboBox>
+            <Grid Grid.Column="1" Margin="14">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="150"/>
+                </Grid.RowDefinitions>
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="130"/>
+                    </Grid.ColumnDefinitions>
+                    <Button Content="선택 종료" Style="{StaticResource B}" Background="#C83247"
+                            Click="StopSelectedButton_Click"/>
+                    <TextBlock Grid.Column="1" Text="휴대폰 화면 모드" Foreground="#91A5BC"
+                               VerticalAlignment="Center" Margin="8,0,12,0"/>
+                    <TextBlock Grid.Column="2" Text="1080×1920 · 9:16" Foreground="#7DD3FC"
+                               VerticalAlignment="Center"/>
+                    <ComboBox x:Name="LayoutComboBox" Grid.Column="4" Height="30" SelectedIndex="0"
+                              SelectionChanged="LayoutComboBox_SelectionChanged">
+                        <ComboBoxItem Content="자동"/>
+                        <ComboBoxItem Content="2×2"/>
+                        <ComboBoxItem Content="3×2"/>
+                    </ComboBox>
                 </Grid>
-                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"><ItemsControl x:Name="CardItems" Tag="430" ItemTemplate="{StaticResource Card}"><ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel></ItemsControl></ScrollViewer>
-                <Grid Grid.Row="2" Margin="0,10,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="250"/></Grid.ColumnDefinitions>
-                    <Border Background="{StaticResource Panel}" BorderBrush="{StaticResource Border}" BorderThickness="1" CornerRadius="9" Padding="10" Margin="0,0,10,0"><Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions><Grid><TextBlock Text="실행 로그" FontWeight="Bold"/><Button Content="지우기" HorizontalAlignment="Right" Style="{StaticResource B}" Click="ClearLog_Click"/></Grid><TextBox x:Name="LogTextBox" Grid.Row="1" Margin="0,7,0,0" Background="#081321" BorderThickness="0" Foreground="#B9D7C8" IsReadOnly="True" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" TextWrapping="Wrap"/></Grid></Border>
-                    <Border Grid.Column="1" Background="{StaticResource Panel}" BorderBrush="{StaticResource Border}" BorderThickness="1" CornerRadius="9" Padding="12"><StackPanel><TextBlock Text="시스템 사용량" FontWeight="Bold"/><TextBlock x:Name="CpuText" Text="CPU 0%" FontSize="18" Margin="0,18,0,0"/><TextBlock x:Name="RamText" Text="RAM 0%" FontSize="18" Margin="0,10,0,0"/><TextBlock x:Name="RamDetailText" Foreground="#91A5BC" Margin="0,8,0,0"/></StackPanel></Border>
+
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled" Margin="0,12,0,0">
+                    <ItemsControl x:Name="CardItems" Tag="300" ItemTemplate="{StaticResource Card}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                    </ItemsControl>
+                </ScrollViewer>
+
+                <Grid Grid.Row="2" Margin="0,10,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="230"/>
+                    </Grid.ColumnDefinitions>
+                    <Border Background="{StaticResource Panel}" BorderBrush="{StaticResource Border}"
+                            BorderThickness="1" CornerRadius="9" Padding="10" Margin="0,0,10,0">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <Grid>
+                                <TextBlock Text="실행 로그" FontWeight="Bold"/>
+                                <Button Content="지우기" HorizontalAlignment="Right"
+                                        Style="{StaticResource B}" Click="ClearLog_Click"/>
+                            </Grid>
+                            <TextBox x:Name="LogTextBox" Grid.Row="1" Margin="0,7,0,0"
+                                     Background="#081321" BorderThickness="0" Foreground="#B9D7C8"
+                                     IsReadOnly="True" AcceptsReturn="True"
+                                     VerticalScrollBarVisibility="Auto" TextWrapping="Wrap"/>
+                        </Grid>
+                    </Border>
+                    <Border Grid.Column="1" Background="{StaticResource Panel}" BorderBrush="{StaticResource Border}"
+                            BorderThickness="1" CornerRadius="9" Padding="12">
+                        <StackPanel>
+                            <TextBlock Text="시스템 사용량" FontWeight="Bold"/>
+                            <TextBlock x:Name="CpuText" Text="CPU 0%" FontSize="17" Margin="0,14,0,0"/>
+                            <TextBlock x:Name="RamText" Text="RAM 0%" FontSize="17" Margin="0,8,0,0"/>
+                            <TextBlock x:Name="RamDetailText" Foreground="#91A5BC" Margin="0,6,0,0"/>
+                        </StackPanel>
+                    </Border>
                 </Grid>
             </Grid>
         </Grid>
