@@ -7,9 +7,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>AndroidMultiGameManager</AssemblyName>
     <RootNamespace>AndroidMultiGameManager</RootNamespace>
-      <Version>1.8.0</Version>
-    <AssemblyVersion>1.8.0.0</AssemblyVersion>
-    <FileVersion>1.8.0.0</FileVersion>
+      <Version>1.8.1</Version>
+    <AssemblyVersion>1.8.1.0</AssemblyVersion>
+    <FileVersion>1.8.1.0</FileVersion>
   </PropertyGroup>
   <ItemGroup>
     <Compile Remove="MaintenanceSmokeTest\**\*.cs" />

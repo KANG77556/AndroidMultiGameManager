@@ -15,7 +15,8 @@ public sealed record UpdateResult(
 
 public static class UpdateService
 {
-    public const string CurrentVersion = "1.8.0";
+    public const string CurrentVersion = "1.8.1";
+    public const string DefaultManifestUrl = "https://raw.githubusercontent.com/KANG77556/AndroidMultiGameManager/main/update-manifest.json";
 
     public static async Task<UpdateResult> CheckAndDownloadAsync(string manifestUrl)
     {
@@ -80,16 +81,20 @@ public static class UpdateService
         try
         {
             var file = Path.Combine(AppContext.BaseDirectory, "update-config.json");
-            if (!File.Exists(file)) return "";
+            if (!File.Exists(file)) return DefaultManifestUrl;
 
             using var doc = JsonDocument.Parse(File.ReadAllText(file));
-            return doc.RootElement.TryGetProperty("manifestUrl", out var url)
-                ? url.GetString() ?? ""
-                : "";
+            var configured = doc.RootElement.TryGetProperty("manifestUrl", out var url)
+                ? url.GetString()
+                : null;
+
+            return string.IsNullOrWhiteSpace(configured)
+                ? DefaultManifestUrl
+                : configured;
         }
         catch
         {
-            return "";
+            return DefaultManifestUrl;
         }
     }
 

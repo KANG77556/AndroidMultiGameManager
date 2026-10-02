@@ -39,7 +39,7 @@
         <Grid.RowDefinitions><RowDefinition Height="58"/><RowDefinition Height="*"/></Grid.RowDefinitions>
         <Border Background="#0B1A2B" BorderBrush="#18324E" BorderThickness="0,0,0,1">
             <Grid Margin="16,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center"><Border Width="34" Height="34" CornerRadius="8" Background="#7138D5"><TextBlock Text="G" FontSize="20" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><TextBlock Text="Android 게임 멀티 실행기" FontSize="20" FontWeight="Bold" Margin="12,0,0,0" VerticalAlignment="Center"/><TextBlock Text="v1.8.0" Foreground="#8EA2B8" Margin="8,0,0,0" VerticalAlignment="Center"/></StackPanel>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center"><Border Width="34" Height="34" CornerRadius="8" Background="#7138D5"><TextBlock Text="G" FontSize="20" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><TextBlock Text="Android 게임 멀티 실행기" FontSize="20" FontWeight="Bold" Margin="12,0,0,0" VerticalAlignment="Center"/><TextBlock Text="v1.8.1" Foreground="#8EA2B8" Margin="8,0,0,0" VerticalAlignment="Center"/></StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center"><TextBlock x:Name="ClockText" Foreground="#A8BAD0" VerticalAlignment="Center" Margin="0,0,10,0"/><Button Content="업데이트 확인" Style="{StaticResource B}" Click="CheckUpdateButton_Click"/></StackPanel>
             </Grid>
         </Border>

@@ -11,7 +11,62 @@ public sealed class AndroidSdkService
     public AndroidSdkService(){ SdkRoot=ResolveSdkRoot(); if(!string.IsNullOrWhiteSpace(SdkRoot)){AdbPath=Path.Combine(SdkRoot,"platform-tools","adb.exe");EmulatorPath=Path.Combine(SdkRoot,"emulator","emulator.exe");}}
     private static string? ResolveSdkRoot(){ var c=new[]{Environment.GetEnvironmentVariable("ANDROID_SDK_ROOT"),Environment.GetEnvironmentVariable("ANDROID_HOME"),Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"Android","Sdk")}; return c.FirstOrDefault(p=>!string.IsNullOrWhiteSpace(p)&&Directory.Exists(p)); }
     public bool IsReady(out string m){ if(string.IsNullOrWhiteSpace(SdkRoot)){m="Android SDK를 찾지 못했습니다.";return false;} if(string.IsNullOrWhiteSpace(AdbPath)||!File.Exists(AdbPath)){m=$"adb.exe를 찾지 못했습니다: {AdbPath}";return false;} if(string.IsNullOrWhiteSpace(EmulatorPath)||!File.Exists(EmulatorPath)){m=$"emulator.exe를 찾지 못했습니다: {EmulatorPath}";return false;} m="Android SDK 준비 완료";return true; }
-    public async Task<IReadOnlyList<string>> GetAvdsAsync(){ EnsureReady(); var r=await RunAsync(EmulatorPath!,"-list-avds",15000); return r.Out.Split(new[]{'\r','\n'},StringSplitOptions.RemoveEmptyEntries|StringSplitOptions.TrimEntries).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(x=>x,StringComparer.OrdinalIgnoreCase).ToList(); }
+    public async Task<IReadOnlyList<string>> GetAvdsAsync()
+    {
+        EnsureReady();
+        var names=new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        try
+        {
+            var r=await RunAsync(EmulatorPath!,"-list-avds",15000,false);
+            foreach(var name in r.Out.Split(new[]{'\r','\n'},StringSplitOptions.RemoveEmptyEntries|StringSplitOptions.TrimEntries))
+                if(!string.IsNullOrWhiteSpace(name))names.Add(name);
+        }
+        catch { }
+
+        foreach(var root in GetAvdRoots())
+        {
+            if(!Directory.Exists(root))continue;
+            foreach(var ini in Directory.EnumerateFiles(root,"*.ini",SearchOption.TopDirectoryOnly))
+            {
+                try
+                {
+                    var name=Path.GetFileNameWithoutExtension(ini);
+                    if(!string.IsNullOrWhiteSpace(name))names.Add(name);
+                }
+                catch { }
+            }
+        }
+
+        try
+        {
+            var running=await GetRunningAvdsAsync();
+            foreach(var name in running.Keys)names.Add(name);
+        }
+        catch { }
+
+        return names.OrderBy(x=>x,StringComparer.OrdinalIgnoreCase).ToList();
+    }
+
+    private static IEnumerable<string> GetAvdRoots()
+    {
+        var roots=new List<string>();
+        var custom=Environment.GetEnvironmentVariable("ANDROID_AVD_HOME");
+        if(!string.IsNullOrWhiteSpace(custom))roots.Add(custom);
+
+        var home=Environment.GetEnvironmentVariable("ANDROID_USER_HOME");
+        if(!string.IsNullOrWhiteSpace(home))
+            roots.Add(Path.Combine(home,"avd"));
+
+        roots.Add(Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            ".android",
+            "avd"));
+
+        return roots
+            .Where(x=>!string.IsNullOrWhiteSpace(x))
+            .Distinct(StringComparer.OrdinalIgnoreCase);
+    }
     public async Task<Dictionary<string,string>> GetRunningAvdsAsync(){ EnsureReady(); var d=await RunAsync(AdbPath!,"devices",10000); var serials=d.Out.Split(new[]{'\r','\n'},StringSplitOptions.RemoveEmptyEntries|StringSplitOptions.TrimEntries).Where(x=>x.StartsWith("emulator-")&&x.EndsWith("\tdevice")).Select(x=>x.Split('\t')[0]); var map=new Dictionary<string,string>(StringComparer.OrdinalIgnoreCase); foreach(var s in serials){var n=await TryGetAvdNameAsync(s);if(!string.IsNullOrWhiteSpace(n))map[n]=s;} return map; }
     private async Task<string?> TryGetAvdNameAsync(string s){ try{var r=await RunAsync(AdbPath!,$"-s {Q(s)} emu avd name",6000);return r.Out.Split(new[]{'\r','\n'},StringSplitOptions.RemoveEmptyEntries|StringSplitOptions.TrimEntries).FirstOrDefault(x=>!x.Equals("OK",StringComparison.OrdinalIgnoreCase));}catch{return null;} }
     public Process StartAvd(string name,int port,int cores=4,int memory=4096){ EnsureReady(); cores=Math.Clamp(cores,1,16); memory=Math.Clamp(memory,1024,16384); var p=new ProcessStartInfo{FileName=EmulatorPath!,Arguments=$"-avd {Q(name)} -port {port} -cores {cores} -memory {memory} -no-snapshot-save",UseShellExecute=false,CreateNoWindow=false,WorkingDirectory=Path.GetDirectoryName(EmulatorPath!)!}; return Process.Start(p)??throw new InvalidOperationException($"AVD 실행 실패: {name}"); }
