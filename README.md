@@ -1,10 +1,11 @@
 # Android Multi Game Manager
 
-Windows GUI manager for running and controlling multiple Android emulator game instances.
+## v1.8.2
 
-## v1.8.1
-
-- Fix updater when update-config.json is missing or empty by using a built-in GitHub manifest URL
-- Ensure update-config.json is included in publish/install output
-- Recover AVD list from emulator -list-avds, ANDROID_AVD_HOME, ANDROID_USER_HOME, ~/.android/avd and running ADB emulators
-- Preserve v1.8 Google Play multi-account, same-game install and synchronized control features
+- Block placeholder package `com.example.game` from ADB package checks and game launch
+- ADB timeout recovery: device state check -> reconnect -> one retry
+- Google account settings fallback: ADD_ACCOUNT_SETTINGS -> SYNC_SETTINGS -> SETTINGS
+- Check ADB health before Google account / Play Store operations
+- Preview status messages for stopped, connecting, scrcpy failure and timeout states
+- Preserve v1.8.1 updater fallback and robust AVD discovery
+- Preserve per-instance Google Play accounts, same-game install/play, groups and synchronized controls

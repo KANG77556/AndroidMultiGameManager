@@ -13,6 +13,7 @@ public sealed class AvdItem : INotifyPropertyChanged
     private string _health = "미확인";
     private string _accountAlias = "미지정";
     private string _googleAccountStatus = "미확인";
+    private string _previewStatus = "중지됨";
 
     public string Name { get; init; } = string.Empty;
 
@@ -24,6 +25,7 @@ public sealed class AvdItem : INotifyPropertyChanged
     public string Health { get => _health; set { _health=value; OnPropertyChanged(); } }
     public string AccountAlias { get => _accountAlias; set { _accountAlias=value; OnPropertyChanged(); } }
     public string GoogleAccountStatus { get => _googleAccountStatus; set { _googleAccountStatus=value; OnPropertyChanged(); } }
+    public string PreviewStatus { get => _previewStatus; set { _previewStatus=value; OnPropertyChanged(); } }
 
     public event PropertyChangedEventHandler? PropertyChanged;
     private void OnPropertyChanged([CallerMemberName] string? name=null)=>PropertyChanged?.Invoke(this,new PropertyChangedEventArgs(name));

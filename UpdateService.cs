@@ -15,14 +15,13 @@ public sealed record UpdateResult(
 
 public static class UpdateService
 {
-    public const string CurrentVersion = "1.8.1";
+    public const string CurrentVersion = "1.8.2";
     public const string DefaultManifestUrl = "https://raw.githubusercontent.com/KANG77556/AndroidMultiGameManager/main/update-manifest.json";
 
     public static async Task<UpdateResult> CheckAndDownloadAsync(string manifestUrl)
     {
         if (string.IsNullOrWhiteSpace(manifestUrl))
-            return new(false, CurrentVersion, CurrentVersion,
-                "update-config.json에 manifestUrl을 설정하세요.", null);
+            manifestUrl = DefaultManifestUrl;
 
         using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
         var manifestJson = await client.GetStringAsync(manifestUrl);

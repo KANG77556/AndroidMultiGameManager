@@ -53,10 +53,12 @@ public sealed class ScrcpyHost : HwndHost
     public static readonly DependencyProperty DeviceSerialProperty=DependencyProperty.Register(nameof(DeviceSerial),typeof(string),typeof(ScrcpyHost),new FrameworkPropertyMetadata("-",OnRestartPropertyChanged));
     public static readonly DependencyProperty MaxFpsProperty=DependencyProperty.Register(nameof(MaxFps),typeof(int),typeof(ScrcpyHost),new FrameworkPropertyMetadata(60,OnRestartPropertyChanged));
     public static readonly DependencyProperty MaxSizeProperty=DependencyProperty.Register(nameof(MaxSize),typeof(int),typeof(ScrcpyHost),new FrameworkPropertyMetadata(1080,OnRestartPropertyChanged));
+    public static readonly DependencyProperty StatusMessageProperty=DependencyProperty.Register(nameof(StatusMessage),typeof(string),typeof(ScrcpyHost),new FrameworkPropertyMetadata("중지됨"));
 
     public string DeviceSerial{get=>(string)GetValue(DeviceSerialProperty);set=>SetValue(DeviceSerialProperty,value);}
     public int MaxFps{get=>(int)GetValue(MaxFpsProperty);set=>SetValue(MaxFpsProperty,value);}
     public int MaxSize{get=>(int)GetValue(MaxSizeProperty);set=>SetValue(MaxSizeProperty,value);}
+    public string StatusMessage{get=>(string)GetValue(StatusMessageProperty);private set=>SetValue(StatusMessageProperty,value);}
     private static void OnRestartPropertyChanged(DependencyObject d,DependencyPropertyChangedEventArgs e){if(d is ScrcpyHost h)h.RestartForSerialAsync();}
 
     protected override HandleRef BuildWindowCore(HandleRef parent){_hostHwnd=CreateWindowEx(0,"static","",WS_CHILD|WS_VISIBLE|WS_CLIPCHILDREN|WS_CLIPSIBLINGS,0,0,1,1,parent.Handle,IntPtr.Zero,IntPtr.Zero,IntPtr.Zero);RestartForSerialAsync();return new HandleRef(this,_hostHwnd);}
@@ -68,12 +70,22 @@ public sealed class ScrcpyHost : HwndHost
         await Task.Yield();
         if(_hostHwnd==IntPtr.Zero)return;
         var serial=DeviceSerial?.Trim();
-        if(string.IsNullOrWhiteSpace(serial)||serial=="-"||!serial.StartsWith("emulator-",StringComparison.OrdinalIgnoreCase)){StopScrcpy();return;}
+        if(string.IsNullOrWhiteSpace(serial)||serial=="-"||!serial.StartsWith("emulator-",StringComparison.OrdinalIgnoreCase))
+        {
+            StopScrcpy();
+            StatusMessage="중지됨";
+            return;
+        }
         StopScrcpy();
+        StatusMessage="화면 연결 중...";
         try
         {
             var exe=ScrcpyLocator.Find();
-            if(exe is null)return;
+            if(exe is null)
+            {
+                StatusMessage="scrcpy를 찾을 수 없습니다.";
+                return;
+            }
             var title=$"AGMM-{serial}";
             var fps=Math.Clamp(MaxFps,15,240);
             var size=Math.Clamp(MaxSize,480,2160);
@@ -86,11 +98,26 @@ public sealed class ScrcpyHost : HwndHost
                 _process.Refresh();
                 var hwnd=_process.MainWindowHandle;
                 if(hwnd==IntPtr.Zero)hwnd=FindWindow(null,title);
-                if(hwnd!=IntPtr.Zero){_scrcpyHwnd=hwnd;Attach(hwnd);ResizeChild();return;}
+                if(hwnd!=IntPtr.Zero)
+                {
+                    _scrcpyHwnd=hwnd;
+                    Attach(hwnd);
+                    ResizeChild();
+                    StatusMessage="";
+                    return;
+                }
                 await Task.Delay(150);
             }
+
+            StatusMessage=_process.HasExited
+                ? "scrcpy 연결 실패"
+                : "화면 연결 시간 초과";
         }
-        catch{StopScrcpy();}
+        catch(Exception ex)
+        {
+            StopScrcpy();
+            StatusMessage="화면 연결 오류: "+ex.Message;
+        }
     }
 
     private void Attach(IntPtr hwnd)

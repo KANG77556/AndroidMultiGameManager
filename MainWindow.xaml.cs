@@ -125,7 +125,46 @@ public partial class MainWindow : Window
         }
     }
     private async void LaunchGameButton_Click(object s,RoutedEventArgs e)=>await LaunchGameAsync(PackageTextBox.Text.Trim());
-    private async Task LaunchGameAsync(string package){var t=SelectedRunning();if(t.Count==0){MessageBox.Show("실행 중인 선택 인스턴스가 없습니다.");return;}if(string.IsNullOrWhiteSpace(package)){MessageBox.Show("패키지명을 입력하세요.");return;}await Task.WhenAll(t.Select(async i=>{try{await _sdk.LaunchPackageAsync(i.DeviceSerial,package);Log($"게임 실행: {package} → {i.Name}");}catch(Exception ex){Log(ex.Message);}}));}
+    private async Task LaunchGameAsync(string package)
+    {
+        var targets=SelectedRunning();
+        if(targets.Count==0)
+        {
+            MessageBox.Show("실행 중인 선택 인스턴스가 없습니다.");
+            return;
+        }
+
+        if(!AndroidSdkService.IsValidPackageName(package))
+        {
+            MessageBox.Show(
+                "실제 게임 패키지명을 선택하세요.\n\n" +
+                "Play 스토어에서 게임을 설치한 뒤 '설치 완료 감지' 또는 '앱 조회'를 사용하면 패키지명이 자동으로 입력됩니다.",
+                "게임 패키지 필요",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+            return;
+        }
+
+        await Task.WhenAll(targets.Select(async item=>
+        {
+            try
+            {
+                if(!await _sdk.IsDeviceHealthyAsync(item.DeviceSerial))
+                {
+                    item.Health="주의";
+                    Log($"게임 실행 건너뜀: {item.Name} - ADB 연결 응답 없음");
+                    return;
+                }
+
+                await _sdk.LaunchPackageAsync(item.DeviceSerial,package);
+                Log($"게임 실행: {package} → {item.Name}");
+            }
+            catch(Exception ex)
+            {
+                Log($"게임 실행 실패: {item.Name} - {ex.Message}");
+            }
+        }));
+    }
     private async void StopSelectedButton_Click(object s,RoutedEventArgs e)=>await StopItemsAsync(SelectedRunning());
     private async void CardStop_Click(object s,RoutedEventArgs e){if(s is FrameworkElement{Tag:AvdItem i}&&i.DeviceSerial.StartsWith("emulator-"))await StopItemsAsync(new(){i});}
     private async void StopAllButton_Click(object s,RoutedEventArgs e)=>await StopItemsAsync(_items.Where(x=>x.DeviceSerial.StartsWith("emulator-")).ToList());
@@ -298,17 +337,32 @@ public partial class MainWindow : Window
         {
             try
             {
+                var healthy=await _sdk.IsDeviceHealthyAsync(item.DeviceSerial);
+                if(!healthy)
+                {
+                    item.Health="주의";
+                    item.GoogleAccountStatus="ADB 오류";
+                    return (Item:item,Ready:false);
+                }
+
+                item.Health="정상";
                 var ready=await _sdk.HasGoogleAccountAsync(item.DeviceSerial);
                 return (Item:item,Ready:ready);
             }
-            catch
+            catch(Exception ex)
             {
+                item.Health="주의";
+                item.GoogleAccountStatus="확인 실패";
+                Log($"Google 계정 상태 확인 실패: {item.Name} - {ex.Message}");
                 return (Item:item,Ready:false);
             }
         }));
 
         foreach(var result in results)
+        {
+            if(result.Item.GoogleAccountStatus is "ADB 오류" or "확인 실패") continue;
             result.Item.GoogleAccountStatus=result.Ready?"로그인됨":"미로그인";
+        }
 
         var readyItems=results.Where(x=>x.Ready).Select(x=>x.Item).ToList();
         PlayStoreStatusText.Text=$"Google 계정 로그인: {readyItems.Count}/{targets.Count}";
