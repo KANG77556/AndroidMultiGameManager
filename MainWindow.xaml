@@ -127,7 +127,7 @@
                     </Border>
                     <TextBlock Text="Android 게임 멀티 실행기" FontSize="20" FontWeight="Bold"
                                Margin="12,0,0,0" VerticalAlignment="Center"/>
-                    <TextBlock Text="v1.9.3" Foreground="#8EA2B8" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                    <TextBlock Text="v1.9.4" Foreground="#8EA2B8" Margin="8,0,0,0" VerticalAlignment="Center"/>
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock x:Name="ClockText" Foreground="#A8BAD0" VerticalAlignment="Center" Margin="0,0,10,0"/>
@@ -209,6 +209,10 @@
                                 <Button Grid.Column="1" Content="미로그인만 열기" Style="{StaticResource B}" Margin="4,0,0,0"
                                         Background="#B45309" Click="OpenMissingGoogleAccountsButton_Click"/>
                             </Grid>
+                            <Button Content="Google 네트워크 점검" Style="{StaticResource B}" Margin="0,6,0,0"
+                                    Background="#475569" Click="CheckGoogleNetworkButton_Click"/>
+                            <TextBlock x:Name="GoogleNetworkStatusText" Text="로그인 전에 네트워크 점검을 권장합니다."
+                                       Foreground="#91A5BC" FontSize="11" Margin="0,6,0,0" TextWrapping="Wrap"/>
 
                             <Border Height="1" Background="#24405C" Margin="0,12"/>
 

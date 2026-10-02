@@ -429,6 +429,12 @@ public partial class MainWindow : Window
         var targets=await EnsureSelectedRunningAsync();
         if(targets.Count==0)return;
 
+        if(!await CheckGoogleNetworkPreflightAsync())
+        {
+            PlayStoreStatusText.Text="현재 네트워크에서는 Google 로그인이 차단될 수 있습니다.";
+            return;
+        }
+
         var ready=await UpdateGoogleAccountStatusesAsync(targets);
         var readyNames=ready.Select(x=>x.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
         var missing=targets.Where(x=>!readyNames.Contains(x.Name)).ToList();
@@ -470,10 +476,75 @@ public partial class MainWindow : Window
         Log($"계정 별칭 저장: {selected[0].Name} → {alias}");
     }
 
+    private async Task<bool> CheckGoogleNetworkPreflightAsync(bool showSuccess=false)
+    {
+        try
+        {
+            GoogleNetworkStatusText.Text="Google TLS 인증서를 확인하는 중...";
+            var result=await NetworkPreflightService.CheckGoogleTlsAsync();
+            GoogleNetworkStatusText.Text=result.Message.Replace(Environment.NewLine," ");
+
+            if(result.InspectionDetected)
+            {
+                Log($"Google TLS 검사 감지: {result.Issuer}");
+                MessageBox.Show(
+                    result.Message,
+                    "Google 로그인 네트워크 점검",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                return false;
+            }
+
+            if(!result.Ok)
+            {
+                Log("Google 네트워크 점검 실패: "+result.Message);
+                MessageBox.Show(
+                    result.Message,
+                    "Google 로그인 네트워크 점검",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                return false;
+            }
+
+            Log("Google TLS 점검 정상: "+result.Issuer);
+            if(showSuccess)
+            {
+                MessageBox.Show(
+                    result.Message,
+                    "Google 로그인 네트워크 점검",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+            }
+            return true;
+        }
+        catch(Exception ex)
+        {
+            GoogleNetworkStatusText.Text="네트워크 점검 실패: "+ex.Message;
+            Log("Google 네트워크 점검 오류: "+ex.Message);
+            MessageBox.Show(
+                "Google 로그인 네트워크를 확인하지 못했습니다.\n\n"+ex.Message,
+                "Google 로그인 네트워크 점검",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return false;
+        }
+    }
+
+    private async void CheckGoogleNetworkButton_Click(object s,RoutedEventArgs e)
+    {
+        await CheckGoogleNetworkPreflightAsync(true);
+    }
+
     private async void OpenGoogleAccountButton_Click(object s,RoutedEventArgs e)
     {
         var targets=await EnsureSelectedRunningAsync();
         if(targets.Count==0)return;
+
+        if(!await CheckGoogleNetworkPreflightAsync())
+        {
+            PlayStoreStatusText.Text="현재 네트워크에서는 Google 로그인이 차단될 수 있습니다.";
+            return;
+        }
 
         foreach(var item in targets)
         {
