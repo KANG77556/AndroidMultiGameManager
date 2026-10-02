@@ -164,7 +164,7 @@ public sealed class AndroidSdkService
         var psi = new ProcessStartInfo
         {
             FileName = EmulatorPath!,
-            Arguments = $"-avd {Q(name)} -port {port} -cores {cores} -memory {memory} -no-snapshot-load -no-snapshot-save -gpu swiftshader_indirect -no-boot-anim",
+            Arguments = $"-avd {Q(name)} -port {port} -cores {cores} -memory {memory} -no-snapshot-load -no-snapshot-save -gpu swiftshader_indirect -no-boot-anim -dns-server 8.8.8.8,1.1.1.1",
             UseShellExecute = false,
             CreateNoWindow = false,
             WorkingDirectory = Path.GetDirectoryName(EmulatorPath!)!
@@ -411,6 +411,17 @@ public sealed class AndroidSdkService
     {
         EnsureReady();
         return await EnsureDeviceReadyAsync(serial, false);
+    }
+
+    public async Task RestartAdbServerAsync()
+    {
+        EnsureReady();
+        try{await RunAsync(AdbPath!,"kill-server",10000,false);}catch{}
+        await Task.Delay(1200);
+        await RunAsync(AdbPath!,"start-server",10000,false);
+        await Task.Delay(1200);
+        try{await RunAsync(AdbPath!,"reconnect offline",10000,false);}catch{}
+        await Task.Delay(1000);
     }
 
     public async Task<bool> EnsureDeviceReadyAsync(string serial, bool throwOnFailure = true)

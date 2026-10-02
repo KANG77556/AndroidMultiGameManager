@@ -1,12 +1,13 @@
 # Android Multi Game Manager
 
-## v1.9.2
+## v1.9.3
 
-- scrcpy가 앱과 동일한 Android SDK adb.exe를 사용하도록 ADB 환경변수 고정
-- scrcpy 실행 전 ADB 연결 및 Android 부팅 완료 확인
-- scrcpy 콘솔창 숨김 실행 및 실패 로그를 카드 상태 메시지에 표시
-- AVD 시작 시 no-snapshot-load + software GPU + no-boot-anim으로 안정 부팅
-- Play Store 이미지 AVD의 PlayStore/GPU/Fast Boot 설정 자동 보정
-- 휴대폰 미리보기 상태를 중지됨/연결 중/ADB 오류/scrcpy 오류로 구체화
-- 인스턴스별 scrcpy 창 제목 고유화
-- v1.9.1 설치 자동 종료/교체 기능 유지
+- 여러 AVD를 동시에 시작하지 않고 순차 시작
+- 각 AVD가 ADB 등록 및 Android 부팅 완료된 뒤 다음 AVD 시작
+- 다중 실행 시 CPU 최대 2코어 / RAM 최대 2048MB 자동 제한
+- ADB offline/재시도 시 ADB 서버 재시작 및 reconnect 수행
+- AVD 실행 시 DNS 8.8.8.8,1.1.1.1 지정으로 Android 네트워크 VALIDATED 복구
+- Cold Boot / software GPU / snapshot 미사용 안정화 옵션 유지
+- scrcpy는 Android SDK adb.exe를 강제 사용
+- update-config.json을 self-contained Publish/설치본에 외부 파일로 확실히 포함
+- v1.9.2의 초간단 UI 및 9:16 휴대폰 미리보기 유지

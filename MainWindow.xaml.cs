@@ -52,13 +52,23 @@ public partial class MainWindow : Window
     private async void CardStart_Click(object s,RoutedEventArgs e){if(s is FrameworkElement{Tag:AvdItem i})await StartItemsAsync(new(){i});}
     private async Task StartItemsAsync(List<AvdItem> targets)
     {
-        if(targets.Count==0){MessageBox.Show("실행할 인스턴스를 선택하세요.");return;}
+        if(targets.Count==0)
+        {
+            MessageBox.Show("실행할 인스턴스를 선택하세요.");
+            return;
+        }
+
         try
         {
             ToggleBusy(true);
             var running=await _sdk.GetRunningAvdsAsync();
-            var used=running.Values.Where(x=>x.StartsWith("emulator-"))
-                .Select(x=>int.TryParse(x[9..],out var p)?p:-1).Where(x=>x>0).ToHashSet();
+            var used=running.Values
+                .Where(x=>x.StartsWith("emulator-"))
+                .Select(x=>int.TryParse(x[9..],out var p)?p:-1)
+                .Where(x=>x>0)
+                .ToHashSet();
+
+            var retryCount=GetRetryCount();
 
             foreach(var item in targets)
             {
@@ -66,55 +76,91 @@ public partial class MainWindow : Window
                 {
                     item.Status="실행 중";
                     item.DeviceSerial=existingSerial;
+                    item.Health=await _sdk.IsDeviceHealthyAsync(existingSerial)?"정상":"주의";
                     continue;
                 }
 
                 var port=FindPort(used);
                 used.Add(port);
-                item.Status="시작 중";
                 item.DeviceSerial=$"emulator-{port}";
-                _sdk.StartAvd(item.Name,port,GetCpu(),GetMemory());
-                Log($"시작: {item.Name} → {item.DeviceSerial}");
-            }
+                item.Status="시작 중";
+                item.Health="부팅 대기";
 
-            var retryCount=GetRetryCount();
-            await Task.WhenAll(targets.Where(x=>x.Status=="시작 중").Select(async item=>
-            {
                 Exception? lastError=null;
+
                 for(var attempt=0;attempt<=retryCount;attempt++)
                 {
+                    Process? process=null;
                     try
                     {
                         if(attempt>0)
                         {
                             Log($"재시도 {attempt}/{retryCount}: {item.Name}");
+                            await _sdk.RestartAdbServerAsync();
+                            await Task.Delay(2500);
+                        }
+
+                        var launchCpu=targets.Count>1?Math.Min(GetCpu(),2):GetCpu();
+                        var launchMemory=targets.Count>1?Math.Min(GetMemory(),2048):GetMemory();
+
+                        process=_sdk.StartAvd(item.Name,port,launchCpu,launchMemory);
+                        Log($"시작: {item.Name} → {item.DeviceSerial} / CPU {launchCpu} / RAM {launchMemory}MB");
+
+                        await _sdk.WaitForDeviceAsync(item.DeviceSerial,TimeSpan.FromSeconds(90));
+
+                        var bootDeadline=DateTime.UtcNow.AddSeconds(120);
+                        var healthy=false;
+                        while(DateTime.UtcNow<bootDeadline)
+                        {
+                            if(process.HasExited)
+                                throw new InvalidOperationException($"에뮬레이터 프로세스가 종료되었습니다. 종료코드={process.ExitCode}");
+
+                            healthy=await _sdk.IsDeviceHealthyAsync(item.DeviceSerial);
+                            if(healthy)break;
+
                             await Task.Delay(2000);
                         }
 
-                        await _sdk.WaitForDeviceAsync(item.DeviceSerial,TimeSpan.FromSeconds(45));
-                        var healthy=await _sdk.IsDeviceHealthyAsync(item.DeviceSerial);
-                        if(!healthy) throw new InvalidOperationException("Android 부팅 완료 상태가 아닙니다.");
+                        if(!healthy)
+                            throw new TimeoutException("Android 부팅 완료 제한시간을 초과했습니다.");
 
-                        await Dispatcher.InvokeAsync(()=>
-                        {
-                            item.Status="실행 중";
-                            item.Health="정상";
-                        });
-                        return;
+                        item.Status="실행 중";
+                        item.Health="정상";
+                        Log($"부팅 완료: {item.Name} → {item.DeviceSerial}");
+
+                        running[item.Name]=item.DeviceSerial;
+                        await Task.Delay(1200);
+                        lastError=null;
+                        break;
                     }
                     catch(Exception ex)
                     {
                         lastError=ex;
+                        Log($"시작 시도 실패: {item.Name} - {ex.Message}");
+
+                        try
+                        {
+                            if(process is {HasExited:false})
+                                process.Kill(true);
+                        }
+                        catch{}
+
+                        await Task.Delay(1500);
+                    }
+                    finally
+                    {
+                        process?.Dispose();
                     }
                 }
 
-                await Dispatcher.InvokeAsync(()=>
+                if(lastError is not null)
                 {
                     item.Status="오류";
                     item.Health="실패";
-                });
-                Log($"시작 실패: {item.Name} - {lastError?.Message}");
-            }));
+                    item.DeviceSerial="-";
+                    Log($"시작 실패: {item.Name} - {lastError.Message}");
+                }
+            }
 
             await RefreshRunningStatesAsync();
             await CheckHealthAsync();

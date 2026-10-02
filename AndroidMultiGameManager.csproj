@@ -7,9 +7,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>AndroidMultiGameManager</AssemblyName>
     <RootNamespace>AndroidMultiGameManager</RootNamespace>
-      <Version>1.9.2</Version>
-    <AssemblyVersion>1.9.2.0</AssemblyVersion>
-    <FileVersion>1.9.2.0</FileVersion>
+      <Version>1.9.3</Version>
+    <AssemblyVersion>1.9.3.0</AssemblyVersion>
+    <FileVersion>1.9.3.0</FileVersion>
   </PropertyGroup>
   <ItemGroup>
     <Compile Remove="MaintenanceSmokeTest\**\*.cs" />
@@ -17,9 +17,11 @@
     <None Remove="MaintenanceSmokeTest\**\*" />
   </ItemGroup>
   <ItemGroup>
-    <None Update="update-config.json">
+    <None Remove="update-config.json" />
+    <Content Include="update-config.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-    </None>
+      <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+    </Content>
   </ItemGroup>
 </Project>
