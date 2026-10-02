@@ -77,22 +77,61 @@ public sealed class ScrcpyHost : HwndHost
             return;
         }
         StopScrcpy();
-        StatusMessage="화면 연결 중...";
+        StatusMessage="ADB 연결 확인 중...";
         try
         {
+            var sdk=new AndroidSdkService();
+            if(!sdk.IsReady(out var sdkMessage))
+            {
+                StatusMessage=sdkMessage;
+                return;
+            }
+
+            if(!await sdk.IsDeviceHealthyAsync(serial))
+            {
+                StatusMessage="Android 부팅 대기 또는 ADB 연결 실패";
+                return;
+            }
+
             var exe=ScrcpyLocator.Find();
             if(exe is null)
             {
                 StatusMessage="scrcpy를 찾을 수 없습니다.";
                 return;
             }
-            var title=$"AGMM-{serial}";
+
+            StatusMessage="화면 연결 중...";
+            var title=$"AGMM-{serial}-{Guid.NewGuid():N}";
             var fps=Math.Clamp(MaxFps,15,240);
             var size=Math.Clamp(MaxSize,480,2160);
-            _process=Process.Start(new ProcessStartInfo{FileName=exe,Arguments=$"-s {serial} --window-title={title} --window-borderless --no-audio --no-clipboard-autosync --max-fps={fps} --max-size={size}",UseShellExecute=false,CreateNoWindow=false,WorkingDirectory=Path.GetDirectoryName(exe)!});
+            var psi=new ProcessStartInfo
+            {
+                FileName=exe,
+                Arguments=$"-s {serial} --window-title={title} --window-borderless --no-audio --no-clipboard-autosync --max-fps={fps} --max-size={size}",
+                UseShellExecute=false,
+                CreateNoWindow=true,
+                RedirectStandardOutput=true,
+                RedirectStandardError=true,
+                WorkingDirectory=Path.GetDirectoryName(exe)!
+            };
+            if(!string.IsNullOrWhiteSpace(sdk.AdbPath))
+            {
+                psi.Environment["ADB"]=sdk.AdbPath;
+                var adbDir=Path.GetDirectoryName(sdk.AdbPath)!;
+                psi.Environment["PATH"]=adbDir+Path.PathSeparator+(psi.Environment.TryGetValue("PATH",out var currentPath)?currentPath:Environment.GetEnvironmentVariable("PATH")??"");
+            }
+
+            _process=Process.Start(psi);
             _activeSerial=serial;
-            if(_process is null)return;
-            var end=DateTime.UtcNow.AddSeconds(15);
+            if(_process is null)
+            {
+                StatusMessage="scrcpy 실행 실패";
+                return;
+            }
+
+            var stdoutTask=_process.StandardOutput.ReadToEndAsync();
+            var stderrTask=_process.StandardError.ReadToEndAsync();
+            var end=DateTime.UtcNow.AddSeconds(20);
             while(DateTime.UtcNow<end&&!_process.HasExited)
             {
                 _process.Refresh();
@@ -109,9 +148,25 @@ public sealed class ScrcpyHost : HwndHost
                 await Task.Delay(150);
             }
 
-            StatusMessage=_process.HasExited
-                ? "scrcpy 연결 실패"
-                : "화면 연결 시간 초과";
+            if(_process.HasExited)
+            {
+                var stdout=await stdoutTask;
+                var stderr=await stderrTask;
+                var detail=string.Join(" ", new[]{stderr,stdout}
+                    .Where(x=>!string.IsNullOrWhiteSpace(x)))
+                    .Replace("\r"," ")
+                    .Replace("\n"," ")
+                    .Trim();
+
+                if(detail.Length>180)detail=detail[..180]+"...";
+                StatusMessage=string.IsNullOrWhiteSpace(detail)
+                    ? "scrcpy 연결 실패"
+                    : "scrcpy 연결 실패: "+detail;
+            }
+            else
+            {
+                StatusMessage="화면 연결 시간 초과";
+            }
         }
         catch(Exception ex)
         {

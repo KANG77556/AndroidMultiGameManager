@@ -1,10 +1,12 @@
 # Android Multi Game Manager
 
-## v1.9.1
+## v1.9.2
 
-- v1.9.0 초간단 UI와 9:16 휴대폰형 미리보기 유지
-- 설치 직전 실행 중인 AndroidMultiGameManager.exe를 taskkill로 자동 종료
-- 잠금 해제 대기 후 기존 EXE 교체
-- UsePreviousAppDir=no로 테스트 설치 경로 재사용 방지
-- 기본 설치 경로를 C:\Program Files\AndroidMultiGameManager로 고정
-- 실행 중 덮어쓰기 설치 실검증 완료
+- scrcpy가 앱과 동일한 Android SDK adb.exe를 사용하도록 ADB 환경변수 고정
+- scrcpy 실행 전 ADB 연결 및 Android 부팅 완료 확인
+- scrcpy 콘솔창 숨김 실행 및 실패 로그를 카드 상태 메시지에 표시
+- AVD 시작 시 no-snapshot-load + software GPU + no-boot-anim으로 안정 부팅
+- Play Store 이미지 AVD의 PlayStore/GPU/Fast Boot 설정 자동 보정
+- 휴대폰 미리보기 상태를 중지됨/연결 중/ADB 오류/scrcpy 오류로 구체화
+- 인스턴스별 scrcpy 창 제목 고유화
+- v1.9.1 설치 자동 종료/교체 기능 유지

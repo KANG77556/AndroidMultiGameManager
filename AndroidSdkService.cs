@@ -157,17 +157,51 @@ public sealed class AndroidSdkService
     public Process StartAvd(string name, int port, int cores = 4, int memory = 4096)
     {
         EnsureReady();
+        PrepareAvdForReliableBoot(name);
+
         cores = Math.Clamp(cores, 1, 16);
         memory = Math.Clamp(memory, 1024, 16384);
         var psi = new ProcessStartInfo
         {
             FileName = EmulatorPath!,
-            Arguments = $"-avd {Q(name)} -port {port} -cores {cores} -memory {memory} -no-snapshot-save",
+            Arguments = $"-avd {Q(name)} -port {port} -cores {cores} -memory {memory} -no-snapshot-load -no-snapshot-save -gpu swiftshader_indirect -no-boot-anim",
             UseShellExecute = false,
             CreateNoWindow = false,
             WorkingDirectory = Path.GetDirectoryName(EmulatorPath!)!
         };
         return Process.Start(psi) ?? throw new InvalidOperationException($"AVD 실행 실패: {name}");
+    }
+
+    private static void PrepareAvdForReliableBoot(string name)
+    {
+        try
+        {
+            var root=Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                ".android",
+                "avd",
+                name+".avd");
+            var configPath=Path.Combine(root,"config.ini");
+            if(!File.Exists(configPath))return;
+
+            var text=File.ReadAllText(configPath);
+            var playStoreImage=text.Contains("google_apis_playstore",StringComparison.OrdinalIgnoreCase);
+            text=SetIni(text,"hw.gpu.enabled","yes");
+            text=SetIni(text,"hw.gpu.mode","software");
+            text=SetIni(text,"fastboot.forceColdBoot","yes");
+            text=SetIni(text,"fastboot.forceFastBoot","no");
+            if(playStoreImage)text=SetIni(text,"PlayStore.enabled","yes");
+            File.WriteAllText(configPath,text);
+
+            foreach(var lockFile in Directory.EnumerateFiles(root,"*.lock",SearchOption.TopDirectoryOnly))
+            {
+                try{File.Delete(lockFile);}catch{}
+            }
+        }
+        catch
+        {
+            // 설정 보정 실패 자체로 AVD 실행을 막지는 않는다.
+        }
     }
 
     public async Task WaitForDeviceAsync(string serial, TimeSpan timeout)
